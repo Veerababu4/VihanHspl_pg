@@ -3,17 +3,17 @@ package com.vihan.hospital.visit;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.vihan.hospital.common.entity.AuditableEntity;
 
@@ -90,8 +90,7 @@ public class Visit extends AuditableEntity {
 	@Column(length = 1000)
 	private String diagnosis;
 
-	@Lob
-	@Basic(fetch = FetchType.EAGER)
+	@JdbcTypeCode(SqlTypes.LONG32VARCHAR)   // PostgreSQL TEXT (a @Lob String would map to an OID large object)
 	@Column(name = "clinical_notes")
 	private String clinicalNotes;
 

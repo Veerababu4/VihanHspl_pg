@@ -66,7 +66,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 	/** End-of-day job (DESIGN.md §10.4): bookings nobody checked in become NO_SHOW. */
 	@Modifying(flushAutomatically = true, clearAutomatically = true)
 	@Query(value = """
-			UPDATE appointment SET status = 'NO_SHOW', needs_action = 0, version = version + 1, updated_at = SYSTIMESTAMP
+			UPDATE appointment SET status = 'NO_SHOW', needs_action = FALSE, version = version + 1, updated_at = LOCALTIMESTAMP
 			WHERE status = 'BOOKED' AND appt_date <= :lastDate""", nativeQuery = true)
 	int markNoShowsUpTo(@Param("lastDate") LocalDate lastDate);
 

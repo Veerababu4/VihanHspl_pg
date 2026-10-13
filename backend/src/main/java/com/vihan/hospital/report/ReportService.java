@@ -61,9 +61,9 @@ public class ReportService {
 		}
 	}
 
-	/** How the "over time" reports group dates; the Oracle TRUNC format is a constant, never user text. */
+	/** How the "over time" reports group dates; the DATE_TRUNC unit is a constant, never user text. */
 	public enum Period {
-		DAY("DD", DateTimeFormatter.ISO_LOCAL_DATE), MONTH("MM", DateTimeFormatter.ofPattern("yyyy-MM"));
+		DAY("day", DateTimeFormatter.ISO_LOCAL_DATE), MONTH("month", DateTimeFormatter.ofPattern("yyyy-MM"));
 
 		final String trunc;
 		final DateTimeFormatter label;
@@ -227,7 +227,7 @@ public class ReportService {
 	private List<List<Object>> branchSummary(Query q) {
 		Filter f = new Filter(q, "a.branch_id");
 		return jdbc.query("""
-				SELECT TRUNC(a.appt_date, '%1$s') p, b.branch_id, b.city, %2$s total,
+				SELECT CAST(DATE_TRUNC('%1$s', a.appt_date) AS DATE) p, b.branch_id, b.city, %2$s total,
 				       COUNT(CASE WHEN a.status = 'BOOKED' THEN 1 END) booked,
 				       COUNT(CASE WHEN a.status = 'CHECKED_IN' THEN 1 END) checked_in,
 				       COUNT(CASE WHEN a.status = 'COMPLETED' THEN 1 END) completed,
@@ -235,7 +235,7 @@ public class ReportService {
 				       COUNT(CASE WHEN a.status = 'NO_SHOW' THEN 1 END) no_show
 				FROM appointment a JOIN branch b ON b.branch_id = a.branch_id
 				WHERE a.appt_date BETWEEN ? AND ?""".formatted(q.period().trunc, NOT_CANCELLED) + f.sql + "\n" + """
-				 GROUP BY TRUNC(a.appt_date, '%s'), b.branch_id, b.city ORDER BY 1, 2""".formatted(q.period().trunc),
+				 GROUP BY 1, b.branch_id, b.city ORDER BY 1, 2""",
 				(rs, i) -> row(periodLabel(q, rs.getObject("p", LocalDate.class)), rs.getString("city"), rs.getLong("total"),
 						rs.getLong("booked"), rs.getLong("checked_in"), rs.getLong("completed"), rs.getLong("cancelled"),
 						rs.getLong("no_show")),
@@ -250,10 +250,10 @@ public class ReportService {
 			args.add(q.branchId());
 		}
 		return jdbc.query("""
-				SELECT TRUNC(p.created_at, '%1$s') per, b.branch_id, b.city, COUNT(*) n
+				SELECT CAST(DATE_TRUNC('%1$s', p.created_at) AS DATE) per, b.branch_id, b.city, COUNT(*) n
 				FROM patient p JOIN branch b ON b.branch_id = p.registered_branch_id
 				WHERE p.created_at >= ? AND p.created_at < ?""".formatted(q.period().trunc) + branchSql + "\n" + """
-				 GROUP BY TRUNC(p.created_at, '%s'), b.branch_id, b.city ORDER BY 1, 2""".formatted(q.period().trunc),
+				 GROUP BY 1, b.branch_id, b.city ORDER BY 1, 2""",
 				(rs, i) -> row(periodLabel(q, rs.getObject("per", LocalDate.class)), rs.getString("city"), rs.getLong("n")),
 				args.toArray());
 	}
@@ -294,11 +294,11 @@ public class ReportService {
 		record Line(LocalDate period, long branchId, long doctorId, long total, long cancelled, long noShow) {
 		}
 		List<Line> lines = jdbc.query("""
-				SELECT TRUNC(a.appt_date, '%1$s') p, a.branch_id, a.doctor_id, COUNT(*) total,
+				SELECT CAST(DATE_TRUNC('%1$s', a.appt_date) AS DATE) p, a.branch_id, a.doctor_id, COUNT(*) total,
 				       COUNT(CASE WHEN a.status = 'CANCELLED' THEN 1 END) cancelled,
 				       COUNT(CASE WHEN a.status = 'NO_SHOW' THEN 1 END) no_show
 				FROM appointment a WHERE a.appt_date BETWEEN ? AND ?""".formatted(q.period().trunc) + f.sql + "\n" + """
-				 GROUP BY TRUNC(a.appt_date, '%s'), a.branch_id, a.doctor_id""".formatted(q.period().trunc),
+				 GROUP BY 1, a.branch_id, a.doctor_id""",
 				(rs, i) -> new Line(rs.getObject("p", LocalDate.class), rs.getLong("branch_id"), rs.getLong("doctor_id"),
 						rs.getLong("total"), rs.getLong("cancelled"), rs.getLong("no_show")),
 				f.args);

@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.zip.CRC32;
 
 import javax.imageio.ImageIO;
@@ -31,6 +32,11 @@ class ImageServiceTest {
 		@Override
 		public void save(String key, byte[] content) {
 			files.put(key, content);
+		}
+
+		@Override
+		public Optional<byte[]> load(String key) {
+			return Optional.ofNullable(files.get(key));
 		}
 
 		@Override

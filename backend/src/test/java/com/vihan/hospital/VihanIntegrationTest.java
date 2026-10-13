@@ -13,7 +13,7 @@ import org.springframework.test.context.TestPropertySource;
 
 /**
  * Shared setup for integration tests. Every class using it shares one Spring context and one
- * Oracle container, so the database starts only once per test run.
+ * PostgreSQL container, so the database starts only once per test run.
  * The {@code local} profile loads the fictional sample data, so that script is tested too.
  * Tests share the database: a test that creates doctors must deactivate them afterwards, because
  * other tests count the active (sample) doctors.
@@ -25,7 +25,6 @@ import org.springframework.test.context.TestPropertySource;
 @Import({ TestcontainersConfiguration.class, TestCaptchaConfiguration.class })
 @ActiveProfiles("local")
 @TestPropertySource(properties = {
-		"app.upload-dir=target/test-uploads",
 		"app.auth.jwt-secret=test-secret-for-integration-tests-only-0123456789",
 		"app.auth.dev-sample-password=" + VihanIntegrationTest.SAMPLE_PASSWORD,
 		"app.auth.bootstrap-admin-password=",

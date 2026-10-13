@@ -170,7 +170,7 @@ class ClinicalIntegrationTest {
 			.andExpect(status().isOk()).andExpect(jsonPath("$.canEdit").value(false));
 		assertThat(id("SELECT COUNT(*) FROM audit_log WHERE action = 'VISIT_VIEWED' AND entity_id = ?", String.valueOf(visit[1])))
 			.isEqualTo(1);
-		assertThat(id("SELECT COUNT(*) FROM audit_log WHERE INSTR(NVL(details, ' '), ?) > 0", diagnosis)).isZero();
+		assertThat(id("SELECT COUNT(*) FROM audit_log WHERE STRPOS(COALESCE(details, ' '), ?) > 0", diagnosis)).isZero();
 	}
 
 	@Test

@@ -76,7 +76,7 @@ class PublicApiIntegrationTest {
 	@Transactional   // rolled back after the test
 	void inactiveDoctorIsHiddenFromThePublic() throws Exception {
 		long id = doctorId("SAMPLE-001");
-		jdbc.update("UPDATE doctor SET is_active = 0 WHERE doctor_id = ?", id);
+		jdbc.update("UPDATE doctor SET is_active = FALSE WHERE doctor_id = ?", id);
 
 		mvc.perform(get("/api/public/doctors"))
 			.andExpect(jsonPath("$.length()").value(19))

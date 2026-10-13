@@ -225,7 +225,7 @@ class AuthIntegrationTest {
 		Session third = login("reception.kdd", PASSWORD);
 
 		// Later, the same old token again = stolen copy: every session of the user is ended.
-		jdbc.update("UPDATE refresh_token SET updated_at = updated_at - INTERVAL '5' MINUTE WHERE revoked = 1");
+		jdbc.update("UPDATE refresh_token SET updated_at = updated_at - INTERVAL '5' MINUTE WHERE revoked = TRUE");
 		mvc.perform(post("/api/auth/refresh").cookie(first.refreshCookie())).andExpect(status().isUnauthorized());
 		mvc.perform(post("/api/auth/refresh").cookie(third.refreshCookie())).andExpect(status().isUnauthorized());
 		assertThat(jdbc.queryForObject(

@@ -52,27 +52,27 @@ class PerformanceCheckTest {
 		long start = System.nanoTime();
 		jdbc.update("""
 				INSERT INTO patient (uhid, full_name, date_of_birth, gender, mobile, registered_branch_id, consent_at, created_at)
-				SELECT 'VMH-PF-' || LPAD(g.n, 6, '0'),
-				       INITCAP(DBMS_RANDOM.STRING('L', 6)) || ' ' || INITCAP(DBMS_RANDOM.STRING('L', 7)),
-				       DATE '1950-01-01' + MOD(g.n * 37, 25000),
+				SELECT 'VMH-PF-' || LPAD(g.n::text, 6, '0'),
+				       INITCAP(SUBSTR(MD5(g.n::text), 1, 6)) || ' ' || INITCAP(SUBSTR(MD5((g.n * 31)::text), 1, 7)),
+				       DATE '1950-01-01' + MOD(g.n * 37, 25000)::int,
 				       CASE MOD(g.n, 2) WHEN 0 THEN 'M' ELSE 'F' END,
-				       '7' || LPAD(MOD(g.n * 7919, 999999999), 9, '0'),
-				       (SELECT branch_id FROM branch WHERE code = DECODE(MOD(g.n, 3), 0, 'MLG', 1, 'HZN', 'KDD')),
-				       SYSTIMESTAMP, SYSTIMESTAMP - NUMTODSINTERVAL(MOD(g.n, 365), 'DAY')
-				  FROM (SELECT level n FROM dual CONNECT BY level <= ?) g""", PATIENTS);
+				       '7' || LPAD(MOD(g.n * 7919, 999999999)::text, 9, '0'),
+				       (SELECT branch_id FROM branch WHERE code = CASE MOD(g.n, 3) WHEN 0 THEN 'MLG' WHEN 1 THEN 'HZN' ELSE 'KDD' END),
+				       LOCALTIMESTAMP, LOCALTIMESTAMP - MOD(g.n, 365) * INTERVAL '1 day'
+				  FROM generate_series(1, ?) AS g (n)""", PATIENTS);
 		// Past year of slots for every sample doctor at their first hospital; 4 in 5 booked.
 		jdbc.update("""
 				INSERT INTO slot (doctor_id, branch_id, slot_date, start_at, end_at, token_no, status, source)
-				SELECT db.doctor_id, db.branch_id, TRUNC(SYSDATE) - d.n,
-				       CAST(TRUNC(SYSDATE) - d.n AS TIMESTAMP) + NUMTODSINTERVAL(540 + (t.n - 1) * 20, 'MINUTE'),
-				       CAST(TRUNC(SYSDATE) - d.n AS TIMESTAMP) + NUMTODSINTERVAL(560 + (t.n - 1) * 20, 'MINUTE'),
+				SELECT db.doctor_id, db.branch_id, CURRENT_DATE - d.n,
+				       CAST(CURRENT_DATE - d.n AS TIMESTAMP) + (540 + (t.n - 1) * 20) * INTERVAL '1 minute',
+				       CAST(CURRENT_DATE - d.n AS TIMESTAMP) + (560 + (t.n - 1) * 20) * INTERVAL '1 minute',
 				       t.n, CASE WHEN MOD(t.n + d.n, 5) = 0 THEN 'OPEN' ELSE 'BOOKED' END, 'TEMPLATE'
 				  FROM (SELECT x.doctor_id, MIN(x.branch_id) branch_id FROM doctor_branch x
 				          JOIN doctor y ON y.doctor_id = x.doctor_id AND y.registration_no LIKE 'SAMPLE-%'
 				         GROUP BY x.doctor_id) db
-				 CROSS JOIN (SELECT level n FROM dual CONNECT BY level <= ?) d
-				 CROSS JOIN (SELECT level n FROM dual CONNECT BY level <= ?) t
-				 WHERE NOT EXISTS (SELECT 1 FROM slot s WHERE s.doctor_id = db.doctor_id AND s.slot_date = TRUNC(SYSDATE) - d.n)""",
+				 CROSS JOIN generate_series(1, ?) AS d (n)
+				 CROSS JOIN generate_series(1, ?) AS t (n)
+				 WHERE NOT EXISTS (SELECT 1 FROM slot s WHERE s.doctor_id = db.doctor_id AND s.slot_date = CURRENT_DATE - d.n)""",
 				DAYS, SLOTS_PER_DAY);
 		jdbc.update("""
 				INSERT INTO appointment (booking_ref, slot_id, doctor_id, branch_id, appt_date, start_at, token_no, patient_id,
@@ -80,15 +80,15 @@ class PerformanceCheckTest {
 				       checked_in_at, completed_at, created_at)
 				SELECT 'PF' || s.slot_id, s.slot_id, s.doctor_id, s.branch_id, s.slot_date, s.start_at, s.token_no, p.patient_id,
 				       p.full_name, p.mobile, 40, p.gender,
-				       DECODE(MOD(s.slot_id, 4), 0, 'ONLINE', 1, 'COUNTER', 2, 'PHONE', 'ONLINE'),
-				       DECODE(MOD(s.slot_id, 10), 0, 'NO_SHOW', 1, 'CANCELLED', 'COMPLETED'),
+				       CASE MOD(s.slot_id, 4) WHEN 1 THEN 'COUNTER' WHEN 2 THEN 'PHONE' ELSE 'ONLINE' END,
+				       CASE MOD(s.slot_id, 10) WHEN 0 THEN 'NO_SHOW' WHEN 1 THEN 'CANCELLED' ELSE 'COMPLETED' END,
 				       s.start_at - INTERVAL '2' DAY,
 				       CASE WHEN MOD(s.slot_id, 10) > 1 THEN s.start_at END,
 				       CASE WHEN MOD(s.slot_id, 10) > 1 THEN s.end_at END,
 				       s.start_at - INTERVAL '2' DAY
 				  FROM slot s
-				  JOIN patient p ON p.uhid = 'VMH-PF-' || LPAD(MOD(s.slot_id, ?) + 1, 6, '0')
-				 WHERE s.status = 'BOOKED' AND s.slot_date < TRUNC(SYSDATE)
+				  JOIN patient p ON p.uhid = 'VMH-PF-' || LPAD((MOD(s.slot_id, ?) + 1)::text, 6, '0')
+				 WHERE s.status = 'BOOKED' AND s.slot_date < CURRENT_DATE
 				   AND NOT EXISTS (SELECT 1 FROM appointment a WHERE a.slot_id = s.slot_id)""", PATIENTS);
 		jdbc.update("""
 				INSERT INTO visit (appointment_id, patient_id, doctor_id, branch_id, visit_date, status,
@@ -98,17 +98,17 @@ class PerformanceCheckTest {
 				  FROM appointment a WHERE a.booking_ref LIKE 'PF%' AND a.status = 'COMPLETED'""");
 		jdbc.update("""
 				INSERT INTO prescription_item (visit_id, medicine_name, dosage, frequency, duration, instructions, sort_order)
-				SELECT v.visit_id, DECODE(n.n, 1, 'Paracetamol', 'Cetirizine'), DECODE(n.n, 1, '650 mg', '10 mg'),
-				       DECODE(n.n, 1, '1-1-1', '0-0-1'), '5 days', 'after food', n.n
-				  FROM visit v CROSS JOIN (SELECT level n FROM dual CONNECT BY level <= 2) n
+				SELECT v.visit_id, CASE n.n WHEN 1 THEN 'Paracetamol' ELSE 'Cetirizine' END, CASE n.n WHEN 1 THEN '650 mg' ELSE '10 mg' END,
+				       CASE n.n WHEN 1 THEN '1-1-1' ELSE '0-0-1' END, '5 days', 'after food', n.n
+				  FROM visit v CROSS JOIN generate_series(1, 2) AS n (n)
 				 WHERE v.appointment_id IN (SELECT appointment_id FROM appointment WHERE booking_ref LIKE 'PF%')""");
 		jdbc.update("""
 				INSERT INTO audit_log (user_id, action, entity_type, entity_id, details, ip_address, created_at)
 				SELECT (SELECT user_id FROM app_user WHERE username = 'itadmin'),
-				       DECODE(MOD(level, 3), 0, 'PATIENT_VIEWED', 1, 'APPOINTMENT_CHECKED_IN', 'LOGIN_SUCCESS'),
-				       'PATIENT', TO_CHAR(level), NULL, '10.0.0.1', SYSTIMESTAMP - NUMTODSINTERVAL(MOD(level, 525600), 'MINUTE')
-				  FROM dual CONNECT BY level <= 300000""");
-		jdbc.execute("BEGIN DBMS_STATS.GATHER_SCHEMA_STATS(USER); END;");
+				       CASE MOD(g.n, 3) WHEN 0 THEN 'PATIENT_VIEWED' WHEN 1 THEN 'APPOINTMENT_CHECKED_IN' ELSE 'LOGIN_SUCCESS' END,
+				       'PATIENT', g.n::text, NULL, '10.0.0.1', LOCALTIMESTAMP - MOD(g.n, 525600) * INTERVAL '1 minute'
+				  FROM generate_series(1, 300000) AS g (n)""");
+		jdbc.execute("ANALYZE");
 
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		for (String table : List.of("patient", "slot", "appointment", "visit", "prescription_item", "audit_log")) {

@@ -230,8 +230,8 @@ public class SlotReconciler {
 			return;
 		}
 		jdbc.batchUpdate("""
-				UPDATE appointment SET needs_action = 1, updated_at = SYSTIMESTAMP
-				WHERE slot_id = ? AND status = 'BOOKED' AND needs_action = 0""", slotIds, 200,
+				UPDATE appointment SET needs_action = TRUE, updated_at = LOCALTIMESTAMP
+				WHERE slot_id = ? AND status = 'BOOKED' AND needs_action = FALSE""", slotIds, 200,
 				(ps, id) -> ps.setLong(1, id));
 	}
 

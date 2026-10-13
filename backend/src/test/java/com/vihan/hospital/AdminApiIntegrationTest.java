@@ -17,8 +17,6 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
 
@@ -32,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jayway.jsonpath.JsonPath;
+import com.vihan.hospital.storage.FileStorageService;
 
 /**
  * M2 IT Admin APIs. Login arrives in M3, so these use mock users with roles.
@@ -40,13 +39,15 @@ import com.jayway.jsonpath.JsonPath;
 @VihanIntegrationTest
 class AdminApiIntegrationTest {
 
-	private static final Path UPLOADS = Path.of("target/test-uploads");
 
 	@Autowired
 	MockMvc mvc;
 
 	@Autowired
 	JdbcTemplate jdbc;
+
+	@Autowired
+	FileStorageService storage;
 
 	private long id(String sql, Object... args) {
 		return jdbc.queryForObject(sql, Long.class, args);
@@ -141,8 +142,7 @@ class AdminApiIntegrationTest {
 			.andReturn().getResponse().getContentAsString();
 		String url = JsonPath.read(body, "$.photoUrl");
 
-		Path saved = UPLOADS.resolve(url.substring("/files/".length()));
-		BufferedImage stored = ImageIO.read(saved.toFile());
+		BufferedImage stored = ImageIO.read(new ByteArrayInputStream(stored(url)));
 		assertThat(stored.getWidth()).isEqualTo(800);       // scaled down to fit 800x800
 		assertThat(stored.getHeight()).isEqualTo(400);      // aspect ratio kept
 
@@ -246,16 +246,21 @@ class AdminApiIntegrationTest {
 			.andExpect(jsonPath("$.thumbUrl", startsWith("/files/gallery/")))
 			.andReturn().getResponse().getContentAsString();
 		int imageId = JsonPath.read(body, "$.id");
-		Path image = UPLOADS.resolve(((String) JsonPath.read(body, "$.imageUrl")).substring("/files/".length()));
-		Path thumb = UPLOADS.resolve(((String) JsonPath.read(body, "$.thumbUrl")).substring("/files/".length()));
-		assertThat(ImageIO.read(thumb.toFile()).getWidth()).isEqualTo(480);
+		String image = JsonPath.read(body, "$.imageUrl");
+		String thumb = JsonPath.read(body, "$.thumbUrl");
+		assertThat(ImageIO.read(new ByteArrayInputStream(stored(thumb))).getWidth()).isEqualTo(480);
 
 		mvc.perform(get("/api/public/gallery").param("branch", "HZN"))
 			.andExpect(jsonPath("$[*].title", hasItem("New ward")));
 
 		mvc.perform(delete("/api/admin/gallery/{id}", imageId)).andExpect(status().isNoContent());
-		assertThat(Files.exists(image)).isFalse();
-		assertThat(Files.exists(thumb)).isFalse();
+		mvc.perform(get(image)).andExpect(status().isNotFound());
+		mvc.perform(get(thumb)).andExpect(status().isNotFound());
+	}
+
+	/** The stored bytes behind a {@code /files/...} URL. */
+	private byte[] stored(String url) {
+		return storage.load(url.substring("/files/".length())).orElseThrow();
 	}
 
 	// ---- test images ----

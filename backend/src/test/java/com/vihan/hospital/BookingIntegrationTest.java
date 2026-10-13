@@ -42,7 +42,7 @@ import com.vihan.hospital.appointment.BookingService;
 import com.vihan.hospital.common.error.ApiException;
 
 /**
- * M5 booking end to end on a real Oracle (DESIGN.md §5.2, §10.3, §19.2–19.3). Each test creates its
+ * M5 booking end to end on a real PostgreSQL (DESIGN.md §5.2, §10.3, §19.2–19.3). Each test creates its
  * own doctor with a Wednesday 10:00-12:00 session at Miryalaguda (6 slots), and sends each public
  * request from a fresh random IP so the real 10/minute booking limit doesn't interfere. Mobile numbers
  * are random too: the "3 bookings per mobile per day" rule applies across doctors, so tests sharing a
@@ -87,7 +87,7 @@ class BookingIntegrationTest {
 	/** Test doctors are deactivated afterwards so other test classes see only the sample doctors. */
 	@AfterEach
 	void deactivateTestDoctor() {
-		jdbc.update("UPDATE doctor SET is_active = 0 WHERE doctor_id = ?", doctorId);
+		jdbc.update("UPDATE doctor SET is_active = FALSE WHERE doctor_id = ?", doctorId);
 	}
 
 	// ---- helpers ----

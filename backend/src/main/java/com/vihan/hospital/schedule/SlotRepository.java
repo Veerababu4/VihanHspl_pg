@@ -63,7 +63,7 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
 	int retokenIfOpen(@Param("id") Long id, @Param("token") int token);
 
 	/**
-	 * Takes a slot for a booking (DESIGN.md §10.3). Oracle locks the row, so of two simultaneous
+	 * Takes a slot for a booking (DESIGN.md §10.3). The database locks the row, so of two simultaneous
 	 * bookings exactly one sees status OPEN and gets 1; the other gets 0 = "slot just taken".
 	 */
 	@Modifying(flushAutomatically = true, clearAutomatically = true)

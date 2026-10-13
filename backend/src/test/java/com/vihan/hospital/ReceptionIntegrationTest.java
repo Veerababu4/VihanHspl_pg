@@ -85,7 +85,7 @@ class ReceptionIntegrationTest {
 
 	@AfterEach
 	void deactivateTestDoctor() {
-		jdbc.update("UPDATE doctor SET is_active = 0 WHERE doctor_id = ?", doctorId);
+		jdbc.update("UPDATE doctor SET is_active = FALSE WHERE doctor_id = ?", doctorId);
 	}
 
 	// ---- helpers ----
@@ -137,7 +137,7 @@ class ReceptionIntegrationTest {
 		jdbc.update("""
 				INSERT INTO appointment (booking_ref, slot_id, doctor_id, branch_id, appt_date, start_at, token_no,
 				  patient_name, patient_mobile, patient_age, patient_gender, channel, status, consent_at)
-				VALUES (?, ?, ?, ?, ?, ?, 90, ?, ?, 40, 'M', 'ONLINE', 'BOOKED', SYSTIMESTAMP)""",
+				VALUES (?, ?, ?, ?, ?, ?, 90, ?, ?, 40, 'M', 'ONLINE', 'BOOKED', LOCALTIMESTAMP)""",
 				ref, slotId, doctor, branch, today, start, name, mobile);
 		return id("SELECT appointment_id FROM appointment WHERE booking_ref = ?", ref);
 	}
@@ -361,7 +361,7 @@ class ReceptionIntegrationTest {
 			jdbc.update("""
 					INSERT INTO appointment (booking_ref, doctor_id, branch_id, appt_date, patient_name, patient_mobile,
 					  channel, status, consent_at)
-					VALUES (?, ?, ?, ?, 'Habitual Absentee', ?, 'PHONE', 'NO_SHOW', SYSTIMESTAMP)""",
+					VALUES (?, ?, ?, ?, 'Habitual Absentee', ?, 'PHONE', 'NO_SHOW', LOCALTIMESTAMP)""",
 					BookingRefs.generate(today), doctorId, mlg, today.minusDays(i), mobile);
 		}
 		long appt = todayBooking(doctorId, mlg, "00:04", "Habitual Absentee", mobile);

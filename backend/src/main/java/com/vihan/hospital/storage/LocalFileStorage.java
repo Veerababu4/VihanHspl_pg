@@ -5,15 +5,18 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import com.vihan.hospital.config.AppProperties;
 
-/** Saves files under {@code app.upload-dir}; they are served at {@code /files/**} by {@code WebConfig}. */
+/** Saves files under {@code app.upload-dir} (with {@code app.file-storage=disk}); served by {@code FileController}. */
 @Service
+@ConditionalOnProperty(name = "app.file-storage", havingValue = "disk")
 public class LocalFileStorage implements FileStorageService {
 
 	private static final Logger log = LoggerFactory.getLogger(LocalFileStorage.class);
@@ -23,15 +26,11 @@ public class LocalFileStorage implements FileStorageService {
 	public LocalFileStorage(AppProperties props) {
 		this.root = Path.of(props.uploadDir()).toAbsolutePath().normalize();
 		try {
-			Files.createDirectories(root);   // must exist so /files/** maps to a directory URI
+			Files.createDirectories(root);
 		}
 		catch (IOException e) {
 			throw new UncheckedIOException("Cannot create upload directory " + root, e);
 		}
-	}
-
-	public Path root() {
-		return root;
 	}
 
 	@Override
@@ -46,6 +45,17 @@ public class LocalFileStorage implements FileStorageService {
 		}
 		catch (IOException e) {
 			throw new UncheckedIOException("Could not save file " + key, e);
+		}
+	}
+
+	@Override
+	public Optional<byte[]> load(String key) {
+		Path path = resolve(key);
+		try {
+			return Files.isRegularFile(path) ? Optional.of(Files.readAllBytes(path)) : Optional.empty();
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException("Could not read file " + key, e);
 		}
 	}
 

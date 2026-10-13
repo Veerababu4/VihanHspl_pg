@@ -14,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.vihan.hospital.config.SecurityConfig;
 
 /**
- * M1 end-to-end check on a fresh Oracle: Flyway applies V1/V2 + sample data, Hibernate validates
+ * M1 end-to-end check on a fresh PostgreSQL: Flyway applies V1/V2 + sample data, Hibernate validates
  * the schema, and the security / error-handling baseline behaves as designed.
  */
 @VihanIntegrationTest

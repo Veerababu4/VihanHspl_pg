@@ -30,7 +30,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * M4 scheduling end to end on a real Oracle. Each test creates its own doctor (serving MLG + KDD)
+ * M4 scheduling end to end on a real PostgreSQL. Each test creates its own doctor (serving MLG + KDD)
  * so tests don't affect each other or the sample doctors. Dates are relative to today, and every
  * test date is at least one day ahead so "the past is never changed" doesn't interfere.
  */
@@ -64,7 +64,7 @@ class SchedulingIntegrationTest {
 	/** Test doctors are deactivated afterwards so other test classes see only the sample doctors. */
 	@AfterEach
 	void deactivateTestDoctor() {
-		jdbc.update("UPDATE doctor SET is_active = 0 WHERE doctor_id = ?", doctorId);
+		jdbc.update("UPDATE doctor SET is_active = FALSE WHERE doctor_id = ?", doctorId);
 	}
 
 	// ---- helpers ----
@@ -110,7 +110,7 @@ class SchedulingIntegrationTest {
 				INSERT INTO appointment (booking_ref, slot_id, doctor_id, branch_id, appt_date, start_at, token_no,
 				  patient_name, patient_mobile, channel, status, consent_at)
 				SELECT ?, slot_id, doctor_id, branch_id, slot_date, start_at, token_no, 'Ravi Kumar', '9876543210',
-				  'ONLINE', 'BOOKED', SYSTIMESTAMP FROM slot WHERE slot_id = ?""",
+				  'ONLINE', 'BOOKED', LOCALTIMESTAMP FROM slot WHERE slot_id = ?""",
 				"T-" + UUID.randomUUID().toString().substring(0, 8), slotId);
 		return slotId;
 	}
@@ -171,7 +171,7 @@ class SchedulingIntegrationTest {
 			.andExpect(jsonPath("$.affectedBookings[0].mobile").value("98XXXXXX10"));
 		assertThat(slots(wednesday, "OPEN")).isZero();
 		assertThat(jdbc.queryForObject("SELECT status FROM slot WHERE slot_id = ?", String.class, booked)).isEqualTo("BOOKED");
-		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Integer.class, booked)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Boolean.class, booked)).isTrue();
 	}
 
 	// ---- leave & holidays ----
@@ -189,7 +189,7 @@ class SchedulingIntegrationTest {
 			.andExpect(jsonPath("$.changes.affectedBookings[0].patientName").value("Ravi Kumar"))
 			.andReturn().getResponse().getContentAsString();
 		assertThat(blockReasons(wednesday)).containsExactly("LEAVE");
-		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Integer.class, booked)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Boolean.class, booked)).isTrue();
 
 		// A leave block can't be lifted by hand...
 		long blockedSlot = id("SELECT MIN(slot_id) FROM slot WHERE doctor_id = ? AND slot_date = ? AND status = 'BLOCKED'", doctorId, wednesday);
@@ -304,7 +304,7 @@ class SchedulingIntegrationTest {
 			.andExpect(status().isOk());
 
 		assertThat(slots(wednesday, "OPEN")).isZero();
-		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Integer.class, booked)).isEqualTo(1);
+		assertThat(jdbc.queryForObject("SELECT needs_action FROM appointment WHERE slot_id = ?", Boolean.class, booked)).isTrue();
 	}
 
 }

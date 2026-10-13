@@ -112,7 +112,7 @@ class PatientIntegrationTest {
 			.andExpect(jsonPath("$.registeredBranchCity").value("Huzurnagar"))
 			.andReturn().getResponse().getContentAsString();
 		assertThat(profile).doesNotContain(aadhaar).doesNotContain("aadhaarEnc").doesNotContain("aadhaarHash");
-		assertThat(count("SELECT COUNT(*) FROM audit_log WHERE INSTR(NVL(details, ' '), ?) > 0", aadhaar)).isZero();
+		assertThat(count("SELECT COUNT(*) FROM audit_log WHERE STRPOS(COALESCE(details, ' '), ?) > 0", aadhaar)).isZero();
 	}
 
 	@Test
@@ -191,13 +191,13 @@ class PatientIntegrationTest {
 	void profileShowsUpcomingBookingsAndVisitsAndEveryViewIsAudited() throws Exception {
 		long id = registerId("""
 				{"fullName":"Profile Viewer","age":60,"gender":"M","mobile":"%s","consent":true}""".formatted(newMobile()));
-		long doctorId = jdbc.queryForObject("SELECT MIN(doctor_id) FROM doctor WHERE is_active = 1", Long.class);
+		long doctorId = jdbc.queryForObject("SELECT MIN(doctor_id) FROM doctor WHERE is_active = TRUE", Long.class);
 		long branchId = jdbc.queryForObject("SELECT MIN(branch_id) FROM doctor_branch WHERE doctor_id = ?", Long.class, doctorId);
 		LocalDate today = LocalDate.now(IST);
 		jdbc.update("""
 				INSERT INTO appointment (booking_ref, doctor_id, branch_id, appt_date, patient_id, patient_name, patient_mobile,
 				  channel, status, consent_at)
-				VALUES (?, ?, ?, ?, ?, 'Profile Viewer', '9000000000', 'PHONE', 'BOOKED', SYSTIMESTAMP)""",
+				VALUES (?, ?, ?, ?, ?, 'Profile Viewer', '9000000000', 'PHONE', 'BOOKED', LOCALTIMESTAMP)""",
 				"VMH-PRF-" + id, doctorId, branchId, today.plusDays(3), id);
 		jdbc.update("INSERT INTO visit (patient_id, doctor_id, branch_id, visit_date, visit_type, status) VALUES (?, ?, ?, ?, 'OP', 'COMPLETED')",
 				id, doctorId, branchId, today.minusDays(10));

@@ -140,7 +140,7 @@ public class SamplePatientSeeder implements ApplicationRunner {
 		Random r = new Random(2027);
 		List<long[]> doctorBranches = jdbc.query("""
 				SELECT d.doctor_id, db.branch_id FROM doctor d JOIN doctor_branch db ON db.doctor_id = d.doctor_id
-				WHERE d.is_active = 1 AND d.registration_no LIKE 'SAMPLE-%' ORDER BY d.doctor_id, db.branch_id""",
+				WHERE d.is_active = TRUE AND d.registration_no LIKE 'SAMPLE-%' ORDER BY d.doctor_id, db.branch_id""",
 				(rs, i) -> new long[] { rs.getLong(1), rs.getLong(2) });
 		if (doctorBranches.isEmpty()) {
 			return 0;
@@ -177,9 +177,8 @@ public class SamplePatientSeeder implements ApplicationRunner {
 			}
 			if (profile) {
 				jdbc.update("""
-						MERGE INTO patient_medical_profile m USING (SELECT ? AS pid FROM dual) s ON (m.patient_id = s.pid)
-						WHEN NOT MATCHED THEN INSERT (patient_id, allergies, chronic_conditions)
-						VALUES (s.pid, ?, ?)""", p.getId(), r.nextBoolean() ? "Sulfa drugs" : null,
+						INSERT INTO patient_medical_profile (patient_id, allergies, chronic_conditions)
+						VALUES (?, ?, ?) ON CONFLICT (patient_id) DO NOTHING""", p.getId(), r.nextBoolean() ? "Sulfa drugs" : null,
 						r.nextBoolean() ? "Hypertension" : "Type 2 diabetes");
 			}
 		}

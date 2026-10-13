@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface PatientRepository extends JpaRepository<Patient, Long> {
 
-	@Query(value = "SELECT seq_uhid.NEXTVAL FROM dual", nativeQuery = true)
+	@Query(value = "SELECT nextval('seq_uhid')", nativeQuery = true)
 	long nextUhidNumber();
 
 	/** Check-in suggestions (DESIGN.md §19.5): same mobile, or the same name (any mobile). */

@@ -14,6 +14,8 @@ spring:
     hikari:
       maximum-pool-size: 10
       pool-name: vihan-pool
+      # Column defaults (LOCALTIMESTAMP) and DATE_TRUNC work in IST, whatever the server's zone.
+      connection-init-sql: SET TIME ZONE 'Asia/Kolkata'
   jpa:
     open-in-view: false
     hibernate:
@@ -23,10 +25,6 @@ spring:
         jdbc:
           time_zone: Asia/Kolkata
           fetch_size: 100
-        # Booleans are NUMBER(1) 0/1 (DESIGN.md §9.1) so one schema works on Oracle 19c and 23ai+.
-        # Without this, Hibernate expects Oracle 23's native BOOLEAN type.
-        type:
-          preferred_boolean_jdbc_type: BIT
   flyway:
     locations: classpath:db/migration
   servlet:
@@ -63,6 +61,7 @@ logging:
 app:
   sample-data: false
   cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  file-storage: ${FILE_STORAGE:database}   # database (default) | disk (then upload-dir is used)
   upload-dir: ${UPLOAD_DIR:./uploads}
   public-file-base-url: ${PUBLIC_FILE_BASE_URL:/files}
   auth:

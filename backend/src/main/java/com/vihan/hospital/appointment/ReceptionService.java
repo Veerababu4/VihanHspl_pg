@@ -52,7 +52,7 @@ public class ReceptionService {
 	static final int FREQUENT_NO_SHOWS = 3;
 	/** ... within this many days. */
 	static final int NO_SHOW_DAYS = 30;
-	/** Oracle allows at most 1000 values in an IN list. */
+	/** Keeps IN lists (one bind value each) to a moderate size. */
 	private static final int IN_CHUNK = 900;
 
 	private final AppointmentRepository appointments;
