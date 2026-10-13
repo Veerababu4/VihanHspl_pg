@@ -21,16 +21,13 @@ What it does (both asked for by the user on 2026-10-13):
 2. **Staff Log out at the top right:** a top bar shows the name, role, a "View website" link and **Log out**. It's on
    every staff screen and on the forced password-change screen. On phones it stays in the ☰ menu.
 
-Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **8/9**.
+Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **9/9**.
 
-**Open issue (fix first):** E2E `a11y.spec.ts › public pages meet WCAG 2.1 AA` times out in
-`page.waitForLoadState('networkidle')` on the **booking details step** (`/book`, heading "Book an appointment"; the
-Cloudflare Turnstile widget is on that step).
-- It passed 9/9 several times earlier on 2026-10-13, so it may be flaky (Turnstile network traffic, or a slow PC
-  with low memory). It isn't caused by the new code: `/book` didn't change.
-- Steps: re-run `npx playwright test e2e/a11y.spec.ts`. If it still fails, make `expectAccessible` wait for the
-  page's main heading, or skip `networkidle` on pages that have a captcha, instead of waiting for `networkidle`.
-- Then: E2E 9/9 → mark PR #3 ready → the user reviews and merges → check the live site (it deploys on merge).
+**Fixed (2026-10-13, later):** E2E `a11y.spec.ts` timed out in `waitForLoadState('networkidle')` on the booking
+details step every time: the Turnstile widget keeps the network busy. `expectAccessible` now waits for `load` and
+the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from 3.7 to 1.7 min.
+
+**Next:** PR #3 ready for review → the user reviews and merges → check the live site (it deploys on merge).
 
 **Also still open (user):**
 - In Render, switch `DB_USER` / `DB_PASSWORD` to the `vihanhspl` login (§2). Afterwards check that the app runs as
@@ -136,6 +133,8 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   for memory. Run heavy things one at a time and stop the local backend when it's not needed.
 - PowerShell: `R` is a built-in alias (`Invoke-History`), so don't name helper functions `R`. In `gh … --jq`, quote
   expressions with spaces carefully, or use simple expressions such as `.ahead_by`.
+- E2E: never wait for `networkidle` unbounded on a page with a Turnstile captcha; it may never come.
+- `gh` isn't on PATH in the PowerShell tool: call `& "C:\Program Files\GitHub CLI\gh.exe"`.
 - Feature branches: `git switch --no-track -c <branch> origin/main`. A plain `-c … origin/main` makes `main` the
   upstream, and then `git push` would go to production.
 - E2E pages that wait for `networkidle` fail if a page loads Cloudflare Turnstile on arrival. That's why "Check my

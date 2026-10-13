@@ -8,7 +8,11 @@ import { expect, login, test } from './fixtures.ts'
 // manual keyboard / screen-reader list in docs/UAT-CHECKLIST.md.
 
 async function expectAccessible(page: Page, label: string): Promise<void> {
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('load')
+  await page.getByRole('heading', { level: 1 }).first().waitFor()
+  // The Turnstile widget keeps talking to Cloudflare, so the network may never go idle on a
+  // page with a captcha: give it a few seconds, then check the page as it is.
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {})
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .exclude('iframe')   // Google Maps / Cloudflare content isn't ours to fix
