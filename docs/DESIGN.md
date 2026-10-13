@@ -1052,8 +1052,8 @@ The design is host-agnostic, so moving is a redeploy, not a rewrite:
 ### 16.3 PostgreSQL edition: Cloudflare Pages + Render + Neon (as built, 2026-10-13)
 
 *Decided 2026-10-13:* the Oracle Cloud sign-up kept failing, and this is a personal learning project,
-so the **PostgreSQL edition** (repo `VihanHspl_pg`, branch `postgres-port`) runs on three free services with
-no server to maintain. The Oracle edition stays unchanged on `main` of `VihanHspl`; the rest of §16 describes it.
+so the **PostgreSQL edition** (repo `VihanHspl_pg`, branch `main`) runs on three free services with
+no server to maintain. The Oracle edition stays unchanged in the separate repo `VihanHspl` (`main`, 9d4b1d1); the rest of §16 describes it.
 
 | Part | Service (free plan) | How |
 |---|---|---|

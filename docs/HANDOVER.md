@@ -5,15 +5,16 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
 
 ## 1. Two editions, two repos
 
-| Edition | Local branch | Remote | Status |
-|---|---|---|---|
-| **Oracle** (original, M1–M9) | `main` | `oracle` → `https://github.com/Veerababu4/VihanHspl.git` (private) | M9 done, `9d4b1d1`; unchanged |
-| **PostgreSQL** (learning project, free hosting) | `postgres-port` (tracks `origin/main`) | `origin` → `https://github.com/Veerababu4/VihanHspl_pg.git` (**public**) | Port + deployment files done, tested locally |
+| Edition | Where | Status |
+|---|---|---|
+| **PostgreSQL** (learning project, free hosting) | local `main` → `origin` = `https://github.com/Veerababu4/VihanHspl_pg.git` (**public**) | **live**; this folder |
+| **Oracle** (original, M1–M9) | GitHub only: remote `oracle` = `https://github.com/Veerababu4/VihanHspl.git` (private), `main` = `9d4b1d1` | unchanged since M9 |
 
-- `git switch main` = Oracle; `git switch postgres-port` = PostgreSQL. Push Oracle work with `git push oracle main`.
+- Since 2026-10-13 local `main` is the PostgreSQL code (it was the Oracle code before; that is safe on `oracle/main`).
+  To look at the Oracle code: `git switch -c oracle-main oracle/main`. Never push PostgreSQL work to `oracle`.
 - `VihanHspl_pg` is public: never commit secrets (real `.env` files and `deploy/cloud-secrets.env` are git-ignored).
-- `backend/.env` is shared by both branches (git-ignored). It now holds the PostgreSQL `DB_*` lines; the Oracle ones
-  are kept as comments `# (Oracle, branch main) …`: swap them when working on `main`.
+- `backend/.env` (git-ignored) holds the PostgreSQL `DB_*` lines; the Oracle ones are kept as comments
+  `# (Oracle, branch main) …`: swap them only when running the Oracle code.
 
 ## 2. PostgreSQL edition: where things stand
 
@@ -36,8 +37,17 @@ polls, mojibake "â€”" on the Schedule page.
 
 - All secrets and the Neon connection are in `deploy/cloud-secrets.env` (git-ignored). The user must not paste them into chat; read them from the file without printing.
 - Live checks passed: pages + headers, `/api` via the proxy, E2E **9/9** against the live site (`E2E_BASE_URL=https://vihanhspl-pg.pages.dev`, `E2E_PASSWORD` = cloud `DEV_SAMPLE_PASSWORD`), real visitor IP recorded (IPv6 is stored in brackets: cosmetic).
-- To do (user): in Render set `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` (the name became `vihanhspl-pg`, not `vihan-hospital`). UptimeRobot keep-awake: `/api/public/app-info` every 5 min (answered without the database, so Neon still sleeps).
+- `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` is set in Render (done 2026-10-13). UptimeRobot (user, optional) keep-awake: `/api/public/app-info` every 5 min (answered without the database, so Neon still sleeps).
 - Free plan: Render sleeps after 15 min idle (first visit ~1 min). Every push to `main` of `VihanHspl_pg` redeploys both.
+
+**Own schema (2026-10-13):** the tables live in schema **`vihanhspl`**, owned by login `vihanhspl` (like `VIHAN_APP` on
+Oracle), not in `public`. Code: `DB_SCHEMA` (`application.yml`, `render.yaml`). The live data was moved by hand:
+`deploy/sql/2026-10-13-move-to-vihanhspl-schema.sql` (PR #1). `cloud-secrets.env`: `DB_USER` / `DB_PASSWORD` = the app
+login `vihanhspl`; `DB_OWNER_USER` / `DB_OWNER_PASSWORD` = `neondb_owner` (admin only, never in Render).
+- **To do (user):** in Render set `DB_USER=vihanhspl` and `DB_PASSWORD` (the app login from `cloud-secrets.env`). Until
+  then the app still logs in as `neondb_owner`. Afterwards: check the app runs as `vihanhspl` and run the live E2E.
+- SQL Developer (user's desktop): PostgreSQL tab, Hostname `<neon host>/neondb?` (the `/neondb?` trick, because the
+  Database field can't be set before connecting), Port `5432`, user `vihanhspl` or `neondb_owner`.
 
 ## 3. How to start everything (local, PostgreSQL)
 
@@ -48,10 +58,9 @@ cd C:\Veera\Work\Vihan-Hospital-Phase1\frontend; npm run dev                   #
 ```
 
 - Local DB: container **`vihan-pg`** (postgres:17-alpine, volume `vihan-pg-data`, db `vihan`, user `vihan_app`).
-  Also in it: database `vihan_cloudtest` (used for the cloud-mode container test).
-- Containers the user may want removed (ask first, never delete without asking): `vihan-postgres` (stopped, broken:
-  created with an empty password) + volume `vihan-postgres-data`; `vihan-cloudtest` (cloud-mode test container,
-  port 8081); `vihan-oracle` is the Oracle edition's DB, keep it.
+  The app creates schema `vihanhspl` in it on first start (Flyway); older local tables may still sit in `public`.
+- The test containers and image from 2026-10-13 were removed with the user's OK. `vihan-oracle` (+ volume
+  `vihan-oracle-data`) is the Oracle edition's local DB: keep it.
 - Logins: `backend/.env` (`DEV_SAMPLE_PASSWORD`, `BOOTSTRAP_ADMIN_PASSWORD`). Never print them in chat.
 
 ## 4. Tests
@@ -68,7 +77,10 @@ cd frontend; npm run e2e                       # needs the backend on :8080
 ## 5. Working agreements with the user
 
 - Work stage by stage and **show live progress** ("stage 2/8, test 1/10 running"); summarise, then wait.
-- **Commit only when the user says so; ask before any push.**
+- **Every change through a pull request** (since 2026-10-13): branch from `origin/main` with `--no-track` (so a plain
+  `git push` can't reach `main`), commit, `git push -u origin <branch>`, `gh pr create` (GitHub CLI, logged in as
+  Veerababu4), send the link and wait. The user merges. If the user skips the PR, **ask before** merging or pushing to
+  `main`: it deploys production. Manual database changes go into `deploy/sql/` in the same PR.
 - **Never delete anything** (files, folders, DB rows, containers, volumes, temp files) without asking first.
 - When the session context gets near full, update this file at a clean point and hand off.
 
