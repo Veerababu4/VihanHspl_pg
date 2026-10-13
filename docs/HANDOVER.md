@@ -1,6 +1,6 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-13 (PostgreSQL edition: Phase A done and tested locally; next: Phase B accounts).
+*Updated 2026-10-13 (PostgreSQL edition: **live** at https://vihanhspl-pg.pages.dev, E2E 9/9 on the live site).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 1. Two editions, two repos
@@ -26,9 +26,18 @@ Fixed along the way: E2E `waitForCaptcha` (Turnstile now takes ~3.5 s to load; t
 `data-testid="captcha"` box), E2E walk-in uses the first seeded sample family (`96973 36649`), dialog-focus check
 polls, mojibake "â€”" on the Schedule page.
 
-**Phase B (next, needs the user):** create Neon, Render and Cloudflare accounts and paste the secrets, following
-`deploy/README.md`. Secrets are already generated in `deploy/cloud-secrets.env` (git-ignored; the user must not paste
-them into chat). Then **Phase C**: check the live site (health, booking flow, staff login, headers).
+**Phase B + C (done 2026-10-13): live.**
+
+| Part | Where |
+|---|---|
+| Website | **https://vihanhspl-pg.pages.dev** (Cloudflare Pages project `vihanhspl-pg`, root `frontend`) |
+| Backend | **https://vihan-backend.onrender.com** (Render Blueprint `vihan`, service `vihan-backend`, free, Singapore); answers 404 without `X-Proxy-Secret` except `/actuator/health` |
+| Database | Neon project `vihan`, Singapore, **PostgreSQL 18** (tests run on 17), direct (unpooled) connection |
+
+- All secrets and the Neon connection are in `deploy/cloud-secrets.env` (git-ignored). The user must not paste them into chat; read them from the file without printing.
+- Live checks passed: pages + headers, `/api` via the proxy, E2E **9/9** against the live site (`E2E_BASE_URL=https://vihanhspl-pg.pages.dev`, `E2E_PASSWORD` = cloud `DEV_SAMPLE_PASSWORD`), real visitor IP recorded (IPv6 is stored in brackets: cosmetic).
+- To do (user): in Render set `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` (the name became `vihanhspl-pg`, not `vihan-hospital`). Optional: UptimeRobot on `/api/public/branches`.
+- Free plan: Render sleeps after 15 min idle (first visit ~1 min). Every push to `main` of `VihanHspl_pg` redeploys both.
 
 ## 3. How to start everything (local, PostgreSQL)
 

@@ -8,6 +8,8 @@ The full design, decisions and milestones are in **[docs/DESIGN.md](docs/DESIGN.
 > **This is the PostgreSQL edition** (repo `VihanHspl_pg`, branch `postgres-port`), deployed for free on
 > Cloudflare Pages + Render + Neon: see **[deploy/README.md](deploy/README.md)**. The original Oracle edition is the
 > `main` branch of `VihanHspl`.
+>
+> **Live demo (fictional data):** https://vihanhspl-pg.pages.dev
 
 | Part | Stack | Folder |
 |---|---|---|

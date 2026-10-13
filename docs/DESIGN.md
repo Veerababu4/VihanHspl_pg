@@ -5,7 +5,7 @@
 | **Version** | 0.14 (PostgreSQL edition) — §16.3 free hosting on Cloudflare Pages + Render + Neon, PostgreSQL instead of Oracle (v0.2: hosting path §16.1–16.2, gap analysis §19, reschedule, reports · v0.3: all open questions decided §17 · v0.4: M1 Foundation done, versions pinned §7, local setup §14 · v0.5: M2 public website + admin APIs, admin screens moved to M3 §18 · v0.6: M3 auth, users, audit, admin screens §12.2 · v0.7: M4 scheduling §10.2 · v0.8: M5 booking §10.3 · v0.9: M6 reception, dashboard, reports §10.4–10.6, §11.4 · v0.10: M7 patients, Aadhaar §10.7, §11.5 · v0.11: M8 clinical §11.6 · v0.12: free hosting on Oracle Cloud Always Free §16 · v0.13: M9 hardening §12.4, §15 · v0.14: PostgreSQL edition, §16.3) |
 | **Date** | 2026-10-12 |
 | **Owner** | Veera |
-| **Status** | Signed off → M1 ✅ → M2 ✅ → M3 ✅ → M4 ✅ → M5 ✅ → M6 ✅ → M7 ✅ → M8 ✅ → M9 ✅ (2026-10-12) → **PostgreSQL edition, M10 on free hosting (§16.3; 2026-10-13: built and tested locally, accounts not yet created)** |
+| **Status** | Signed off → M1 ✅ → M2 ✅ → M3 ✅ → M4 ✅ → M5 ✅ → M6 ✅ → M7 ✅ → M8 ✅ → M9 ✅ (2026-10-12) → **PostgreSQL edition live on free hosting (§16.3, 2026-10-13): https://vihanhspl-pg.pages.dev** |
 
 > **How to review:** Read sections 1–6 for *what* we are building, 7–12 for *how*, and 13–16 for setup/deployment/plan.
 > **Section 19 explains how the 8 additional requirements found during the initial review are handled.**
@@ -1073,6 +1073,9 @@ as `TEXT`; null date filters in JPQL cast (`cast(:from as LocalDateTime)`), beca
 under a 512 MB limit on an empty database (migrations, sample data, 3,336 slots, health UP, 404 without the secret);
 E2E 9/9 both on `vite preview` and through the real Pages runtime (`wrangler pages dev`) in front of that container.
 Steps for the accounts and secrets: `deploy/README.md`.
+
+**Live (2026-10-13):** website https://vihanhspl-pg.pages.dev, backend `vihan-backend.onrender.com`, Neon (PostgreSQL 18, Singapore).
+E2E 9/9 against the live site; the backend's own URL answers 404 without the proxy secret.
 
 ---
 
