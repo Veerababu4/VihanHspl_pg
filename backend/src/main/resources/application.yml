@@ -14,6 +14,9 @@ spring:
     hikari:
       maximum-pool-size: 10
       pool-name: vihan-pool
+      # The app's own schema (like the VIHAN_APP schema on Oracle), not PostgreSQL's shared "public".
+      # All SQL is unqualified; this sets each connection's search_path.
+      schema: ${DB_SCHEMA:vihanhspl}
       # Column defaults (LOCALTIMESTAMP) and DATE_TRUNC work in IST, whatever the server's zone.
       connection-init-sql: SET TIME ZONE 'Asia/Kolkata'
   jpa:
@@ -27,6 +30,9 @@ spring:
           fetch_size: 100
   flyway:
     locations: classpath:db/migration
+    # Creates the schema if it's missing and keeps its history table (flyway_schema_history) there.
+    schemas: ${DB_SCHEMA:vihanhspl}
+    default-schema: ${DB_SCHEMA:vihanhspl}
   servlet:
     multipart:
       max-file-size: 5MB

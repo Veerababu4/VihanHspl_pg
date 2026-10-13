@@ -75,7 +75,7 @@ it in `CORS_ALLOWED_ORIGINS`.
 - `/staff/login` as `admin` with `BOOTSTRAP_ADMIN_PASSWORD` (you must change it on first login),
   or the sample logins `itadmin`, `reception.mlg`, `doctor001` … with `DEV_SAMPLE_PASSWORD`.
 - Browser dev tools: no CSP errors; response headers as in `frontend/public/_headers`.
-- Optional: UptimeRobot (free) on `https://<project>.pages.dev/api/public/branches` every 5 min
+- Optional: UptimeRobot (free) on `https://<project>.pages.dev/api/public/app-info` (no database query, not rate-limited) every 5 min
   emails you when the site is down (this also keeps Render awake during the day; it uses the
   750 free hours/month, enough for one service around the clock).
 

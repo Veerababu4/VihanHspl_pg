@@ -36,7 +36,7 @@ polls, mojibake "â€”" on the Schedule page.
 
 - All secrets and the Neon connection are in `deploy/cloud-secrets.env` (git-ignored). The user must not paste them into chat; read them from the file without printing.
 - Live checks passed: pages + headers, `/api` via the proxy, E2E **9/9** against the live site (`E2E_BASE_URL=https://vihanhspl-pg.pages.dev`, `E2E_PASSWORD` = cloud `DEV_SAMPLE_PASSWORD`), real visitor IP recorded (IPv6 is stored in brackets: cosmetic).
-- To do (user): in Render set `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` (the name became `vihanhspl-pg`, not `vihan-hospital`). Optional: UptimeRobot on `/api/public/branches`.
+- To do (user): in Render set `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` (the name became `vihanhspl-pg`, not `vihan-hospital`). UptimeRobot keep-awake: `/api/public/app-info` every 5 min (answered without the database, so Neon still sleeps).
 - Free plan: Render sleeps after 15 min idle (first visit ~1 min). Every push to `main` of `VihanHspl_pg` redeploys both.
 
 ## 3. How to start everything (local, PostgreSQL)

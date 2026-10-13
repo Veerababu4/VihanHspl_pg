@@ -22,6 +22,8 @@ services:
       # ---- Database (Neon) ----
       - key: DB_URL                   # jdbc:postgresql://<host>/<db>?sslmode=require
         sync: false
+      - key: DB_SCHEMA                # the app's own schema; DB_USER owns it (not the Neon owner role)
+        value: vihanhspl
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
