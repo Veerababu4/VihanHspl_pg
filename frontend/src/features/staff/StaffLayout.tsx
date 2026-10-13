@@ -71,14 +71,17 @@ export function StaffLayout() {
 
   if (user.mustChangePassword) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
-        <Seo title={t('staff.password.forcedTitle')} />
-        <h1 className="text-2xl font-bold text-slate-900">{t('staff.password.forcedTitle')}</h1>
-        <p className="mt-2 mb-6 text-slate-600">{t('staff.password.forcedText')}</p>
-        <ChangePasswordForm />
-        <Button variant="link" className="mt-6" onClick={onLogout}>
-          {t('staff.nav.logout')}
-        </Button>
+      <div className="min-h-screen bg-slate-50">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 md:px-8">
+          <Brand />
+          <UserMenu name={user.fullName} role={user.role} onLogout={onLogout} />
+        </header>
+        <div className="mx-auto max-w-lg px-4 py-12">
+          <Seo title={t('staff.password.forcedTitle')} />
+          <h1 className="text-2xl font-bold text-slate-900">{t('staff.password.forcedTitle')}</h1>
+          <p className="mt-2 mb-6 text-slate-600">{t('staff.password.forcedText')}</p>
+          <ChangePasswordForm />
+        </div>
       </div>
     )
   }
@@ -109,7 +112,6 @@ export function StaffLayout() {
         <nav aria-label={t('staff.nav.menu')} className="mt-6 flex-1">
           {nav}
         </nav>
-        <UserBox name={user.fullName} role={user.role} onLogout={onLogout} />
       </aside>
 
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden print:hidden">
@@ -130,11 +132,17 @@ export function StaffLayout() {
         </div>
       )}
 
-      <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
-        <Suspense fallback={<Loading />}>
-          <Outlet />
-        </Suspense>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Who is logged in + Log out, top right on larger screens; phones have them in the menu. */}
+        <header className="hidden items-center justify-end border-b border-slate-200 bg-white px-8 py-3 md:flex print:hidden">
+          <UserMenu name={user.fullName} role={user.role} onLogout={onLogout} />
+        </header>
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-8">
+          <Suspense fallback={<Loading />}>
+            <Outlet />
+          </Suspense>
+        </main>
+      </div>
     </div>
   )
 }
@@ -148,6 +156,26 @@ function Brand() {
   )
 }
 
+/** Top-right bar: name and role, link to the website, Log out. */
+function UserMenu({ name, role, onLogout }: { name: string; role: Role; onLogout: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-4 text-sm">
+      <p className="text-right leading-tight">
+        <span className="block font-medium text-slate-900">{name}</span>
+        <span className="block text-slate-500">{t(`staff.roles.${role}`)}</span>
+      </p>
+      <Link to="/" className="hidden text-slate-600 hover:underline sm:inline">
+        {t('staff.nav.viewSite')}
+      </Link>
+      <Button variant="secondary" onClick={onLogout}>
+        {t('staff.nav.logout')}
+      </Button>
+    </div>
+  )
+}
+
+/** The same, inside the phone menu. */
 function UserBox({ name, role, onLogout }: { name: string; role: Role; onLogout: () => void }) {
   const { t } = useTranslation()
   return (

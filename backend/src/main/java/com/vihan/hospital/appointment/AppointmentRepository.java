@@ -16,6 +16,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
 	boolean existsByBookingRef(String bookingRef);
 
+	/** "Check my booking" by mobile only: today's and later bookings, soonest first. */
+	List<Appointment> findTop10ByPatientMobileAndApptDateGreaterThanEqualOrderByApptDateAscStartAtAsc(String mobile,
+			LocalDate from);
+
 	/** Active (booked or checked-in) appointments of a mobile on a date, optionally ignoring one (reschedule). */
 	@Query("""
 			select count(a) from Appointment a

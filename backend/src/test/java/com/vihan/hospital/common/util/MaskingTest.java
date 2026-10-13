@@ -24,4 +24,18 @@ class MaskingTest {
 		assertThat(Masking.aadhaarFromLast4(null)).isNull();
 	}
 
+	@Test
+	void masksNamesToFirstLetters() {
+		assertThat(Masking.name("Ravi Kumar")).isEqualTo("R*** K***");
+		assertThat(Masking.name("  Lakshmi  ")).isEqualTo("L***");
+		assertThat(Masking.name(null)).isEmpty();
+	}
+
+	@Test
+	void masksTheRandomPartOfABookingReference() {
+		assertThat(Masking.bookingRef("VMH-261013-7K3Q")).isEqualTo("VMH-261013-****");
+		assertThat(Masking.bookingRef("ODD")).isEqualTo("****");
+		assertThat(Masking.bookingRef(null)).isNull();
+	}
+
 }

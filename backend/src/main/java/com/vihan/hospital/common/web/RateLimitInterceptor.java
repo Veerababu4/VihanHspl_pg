@@ -35,7 +35,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
 	static Limit limitFor(String method, String path) {
 		if ("POST".equals(method)) {
-			if (path.equals("/api/public/appointments/lookup")) {
+			if (path.equals("/api/public/appointments/lookup") || path.equals("/api/public/appointments/find")) {
 				return Limit.LOOKUP;
 			}
 			if (path.equals("/api/public/appointments") || path.equals("/api/public/appointments/cancel")

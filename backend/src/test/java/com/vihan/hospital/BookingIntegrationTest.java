@@ -1,12 +1,14 @@
 package com.vihan.hospital;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -298,6 +300,46 @@ class BookingIntegrationTest {
 		patientAction("lookup", "{\"bookingRef\":\"VMH-000000-ZZZZ\",\"mobile\":\"%s\"}".formatted(mobile))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.message").value("No booking found with that reference and mobile number"));
+	}
+
+	@Test
+	void findWithOneFieldShowsOnlyMaskedDetails() throws Exception {
+		String ref = bookRef(slot("10:00"), mobile);
+		bookRef(slot("10:40"), mobile);
+
+		// By mobile: both bookings, reference hidden, so the mobile alone never opens a booking.
+		patientAction("find", "{\"mobile\":\"0%s %s\",\"captchaToken\":\"pass\"}".formatted(mobile.substring(0, 5), mobile.substring(5)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$", hasSize(2)))
+			.andExpect(jsonPath("$[0].bookingRef").value(ref.substring(0, ref.lastIndexOf('-') + 1) + "****"))
+			.andExpect(jsonPath("$[0].patientNameMasked").value("R*** K***"))
+			.andExpect(jsonPath("$[0].branchCity").value("Miryalaguda"))
+			.andExpect(jsonPath("$[0].needs").value("BOOKING_REF"))
+			.andExpect(jsonPath("$[0].doctor").doesNotExist())
+			.andExpect(content().string(not(containsString(ref))))
+			.andExpect(content().string(not(containsString("Ravi"))));
+
+		// By reference: that booking, mobile masked.
+		patientAction("find", "{\"bookingRef\":\"%s\",\"captchaToken\":\"pass\"}".formatted(ref.toLowerCase()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].bookingRef").value(ref))
+			.andExpect(jsonPath("$[0].mobileMasked").value(mobile.substring(0, 2) + "XXXXXX" + mobile.substring(8)))
+			.andExpect(jsonPath("$[0].needs").value("MOBILE"))
+			.andExpect(content().string(not(containsString(mobile))));
+
+		// Nothing found is an empty list, not an error.
+		patientAction("find", "{\"bookingRef\":\"VMH-000000-ZZZZ\",\"captchaToken\":\"pass\"}").andExpect(jsonPath("$", hasSize(0)));
+		patientAction("find", "{\"mobile\":\"%s\",\"captchaToken\":\"pass\"}".formatted(newMobile())).andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
+	void findNeedsExactlyOneFieldAndTheCaptcha() throws Exception {
+		patientAction("find", "{\"mobile\":\"%s\"}".formatted(mobile))
+			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CAPTCHA_REQUIRED"));
+		patientAction("find", "{\"captchaToken\":\"pass\"}").andExpect(status().isBadRequest());
+		patientAction("find", "{\"bookingRef\":\"VMH-000000-ZZZZ\",\"mobile\":\"%s\",\"captchaToken\":\"pass\"}".formatted(mobile))
+			.andExpect(status().isBadRequest());
 	}
 
 	@Test
