@@ -22,6 +22,8 @@ import com.vihan.hospital.appointment.AppointmentDtos.AppointmentView;
 import com.vihan.hospital.appointment.AppointmentDtos.BookingRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.CancelRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.LookupRequest;
+import com.vihan.hospital.appointment.AppointmentDtos.BookingSummary;
+import com.vihan.hospital.appointment.AppointmentDtos.FindRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.PublicSlotDto;
 import com.vihan.hospital.appointment.AppointmentDtos.RescheduleRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.SlotDayDto;
@@ -75,7 +77,14 @@ public final class BookingControllers {
 			return booking.lookup(req.bookingRef(), req.mobile());
 		}
 
-		@PostMapping("/appointments/cancel")
+		/** One field only: limited, masked results; captcha because a mobile number alone is easy to try. */
+	@PostMapping("/appointments/find")
+	public List<BookingSummary> find(@Valid @RequestBody FindRequest req, HttpServletRequest http) {
+		captcha.verify(req.captchaToken(), http.getRemoteAddr());
+		return booking.findByOne(req.bookingRef(), req.mobile());
+	}
+
+	@PostMapping("/appointments/cancel")
 		public AppointmentView cancel(@Valid @RequestBody CancelRequest req, HttpServletRequest http) {
 			captcha.verify(req.captchaToken(), http.getRemoteAddr());
 			return booking.cancelByPatient(req.bookingRef(), req.mobile(), req.reason());

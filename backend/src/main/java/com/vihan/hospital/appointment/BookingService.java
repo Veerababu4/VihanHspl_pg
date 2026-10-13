@@ -3,6 +3,7 @@ package com.vihan.hospital.appointment;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -14,6 +15,7 @@ import com.vihan.hospital.appointment.Appointment.CancelledBy;
 import com.vihan.hospital.appointment.Appointment.Channel;
 import com.vihan.hospital.appointment.AppointmentDtos.AppointmentView;
 import com.vihan.hospital.appointment.AppointmentDtos.BookingRequest;
+import com.vihan.hospital.appointment.AppointmentDtos.BookingSummary;
 import com.vihan.hospital.appointment.AppointmentDtos.BranchInfo;
 import com.vihan.hospital.appointment.AppointmentDtos.DoctorInfo;
 import com.vihan.hospital.appointment.AppointmentDtos.StaffBookingRequest;
@@ -139,6 +141,26 @@ public class BookingService {
 	public AppointmentView lookup(String bookingRef, String mobile) {
 		Appointment a = find(bookingRef, mobile);
 		return view(a, a.getSlotId() == null ? null : slots.findById(a.getSlotId()).orElse(null));
+	}
+
+	/**
+	 * "Check my booking" with one field only: by reference (that booking, any date) or by mobile
+	 * (today and later). Limited, masked results; see {@link BookingSummary}. No result is an empty list.
+	 */
+	@Transactional(readOnly = true)
+	public List<BookingSummary> findByOne(String bookingRef, String mobile) {
+		if (bookingRef != null && !bookingRef.isBlank()) {
+			return appointments.findByBookingRef(BookingRefs.normalize(bookingRef))
+				.map(a -> summary(a, false))
+				.stream().toList();
+		}
+		String normalized = Mobiles.normalize(mobile);
+		if (normalized == null) {
+			return List.of();
+		}
+		return appointments
+			.findTop10ByPatientMobileAndApptDateGreaterThanEqualOrderByApptDateAscStartAtAsc(normalized, LocalDate.now(clock))
+			.stream().map(a -> summary(a, true)).toList();
 	}
 
 	@Transactional
@@ -334,6 +356,14 @@ public class BookingService {
 				a.getPatientName(), a.getPatientAge(), a.getPatientGender(), Masking.mobile(a.getPatientMobile()),
 				a.getReason(), a.getChannel(), a.getRescheduleCount(), left, canChange, canChange && left > 0, deadline,
 				a.isNeedsAction(), a.getCancelReason(), a.getPatientId() == null ? null : patients.uhidOf(a.getPatientId()));
+	}
+
+	/** @param byMobile found by mobile → hide the reference; found by reference → only the masked mobile */
+	private BookingSummary summary(Appointment a, boolean byMobile) {
+		Branch b = branches.findById(a.getBranchId()).orElseThrow();
+		return new BookingSummary(byMobile ? Masking.bookingRef(a.getBookingRef()) : a.getBookingRef(),
+				Masking.mobile(a.getPatientMobile()), Masking.name(a.getPatientName()), a.getApptDate(), a.getStartAt(),
+				a.getTokenNo(), b.getName(), b.getCity(), a.getStatus(), byMobile ? "BOOKING_REF" : "MOBILE");
 	}
 
 	private static Message message(Event event, Appointment a, AppointmentView v) {

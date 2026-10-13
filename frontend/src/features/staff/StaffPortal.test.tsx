@@ -64,7 +64,11 @@ describe('Staff login', () => {
     renderRoutes(routes, '/staff/admin/users')
     await screen.findByRole('heading', { name: 'Staff users' })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Log out' })[0])
+    // Name, role and Log out sit in the top bar (top right), not in the side menu.
+    const topBar = screen.getAllByRole('banner').find((h) => within(h).queryByText('Sample IT Admin'))!
+    expect(within(topBar).getByText('IT Admin')).toBeInTheDocument()
+    expect(within(screen.getByRole('complementary')).queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument()
+    fireEvent.click(within(topBar).getByRole('button', { name: 'Log out' }))
     await screen.findByRole('heading', { name: 'Staff login' })
     fillLogin('reception.mlg', 'secret-123')
 

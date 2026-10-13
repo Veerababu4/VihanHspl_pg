@@ -134,6 +134,43 @@ describe('Check my booking', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Find my booking' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No booking found with that reference and mobile number')
   })
+
+  it('finds bookings by mobile only, then opens one with its reference', async () => {
+    const summary = {
+      bookingRef: 'VMH-261006-****', mobileMasked: '98XXXXXX10', patientNameMasked: 'R*** K***', date: tomorrow,
+      startAt: `${tomorrow}T10:20:00`, tokenNo: 2, branchName: 'Vihan Multi Speciality Hospital - Kodad', branchCity: 'Kodad',
+      status: 'BOOKED', needs: 'BOOKING_REF',
+    }
+    const spy = mockApi({
+      ...layoutApi,
+      'POST /public/appointments/find': [summary],
+      'POST /public/appointments/lookup': confirmed,
+    })
+    renderRoutes(routes, '/appointment-status')
+    fireEvent.change(await screen.findByLabelText('Mobile number'), { target: { value: '9876543210' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Find my booking' }))
+
+    expect(await screen.findByText('R*** K***')).toBeInTheDocument()
+    expect(screen.getByText('VMH-261006-****')).toBeInTheDocument()
+    expect(screen.queryByText('Dr. Venkata Ramana Pulla')).not.toBeInTheDocument()   // no doctor before it's opened
+    expect(requestBody(spy, 'POST /public/appointments/find')).toEqual({ bookingRef: null, mobile: '9876543210', captchaToken: NO_CAPTCHA_TOKEN })
+
+    fireEvent.change(screen.getByLabelText(/enter its booking reference/), { target: { value: 'VMH-261006-7K3Q' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open booking' }))
+    expect(await screen.findByTestId('booking-ref')).toHaveTextContent('VMH-261006-7K3Q')
+    expect(requestBody(spy, 'POST /public/appointments/lookup')).toEqual({ bookingRef: 'VMH-261006-7K3Q', mobile: '9876543210' })
+  })
+
+  it('asks for at least one field and says when nothing matches', async () => {
+    mockApi({ ...layoutApi, 'POST /public/appointments/find': [] })
+    renderRoutes(routes, '/appointment-status')
+    fireEvent.click(await screen.findByRole('button', { name: 'Find my booking' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter your booking reference or your mobile number.')
+
+    fireEvent.change(screen.getByLabelText('Booking reference'), { target: { value: 'VMH-000000-ZZZZ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Find my booking' }))
+    expect(await screen.findByText('No booking found with that reference.')).toBeInTheDocument()
+  })
 })
 
 describe('Counter booking (reception)', () => {

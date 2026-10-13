@@ -63,6 +63,23 @@ public final class AppointmentDtos {
 	public record LookupRequest(@NotBlank @Size(max = 30) String bookingRef, @NotBlank @Size(max = 20) String mobile) {
 	}
 
+	/**
+	 * "Check my booking" with only one of the two (FR-B3): exactly one of booking reference or mobile.
+	 * Finds bookings but shows only limited, masked details ({@link BookingSummary}); viewing the
+	 * full booking, cancelling or rescheduling still needs both (LookupRequest).
+	 */
+	public record FindRequest(@Size(max = 30) String bookingRef, @Size(max = 20) String mobile, String captchaToken) {
+
+		@AssertTrue(message = "enter either the booking reference or the mobile number")
+		public boolean isExactlyOne() {
+			return isBlank(bookingRef) != isBlank(mobile);
+		}
+
+		private static boolean isBlank(String s) {
+			return s == null || s.isBlank();
+		}
+	}
+
 	public record CancelRequest(@NotBlank @Size(max = 30) String bookingRef, @NotBlank @Size(max = 20) String mobile,
 			@Size(max = 300) String reason, String captchaToken) {
 	}
@@ -91,6 +108,19 @@ public final class AppointmentDtos {
 			String patientGender, String mobileMasked, String reason, Appointment.Channel channel, int rescheduleCount,
 			int reschedulesLeft, boolean canCancel, boolean canReschedule, LocalDateTime changeDeadline,
 			boolean needsAction, String cancelReason, String uhid) {
+	}
+
+	/**
+	 * One result of a one-field search (FindRequest). Never reveals the field that wasn't given:
+	 * found by mobile → the reference is masked; found by reference → the mobile is masked. The
+	 * patient name is always masked and no doctor or speciality is shown (health information).
+	 *
+	 * @param bookingRef  full when searched by reference, otherwise {@code VMH-261013-****}
+	 * @param needs       what the visitor must still enter to open the booking: MOBILE or BOOKING_REF
+	 */
+	public record BookingSummary(String bookingRef, String mobileMasked, String patientNameMasked, LocalDate date,
+			LocalDateTime startAt, Integer tokenNo, String branchName, String branchCity, Appointment.Status status,
+			String needs) {
 	}
 
 }

@@ -34,10 +34,23 @@ test('patient books online, finds the booking, reschedules and cancels it', asyn
   await expect(page.getByRole('heading', { name: /Booking confirmed/ })).toBeVisible({ timeout: 30_000 })
   const ref = (await page.getByTestId('booking-ref').textContent())!.trim()
 
+  // The link pre-fills the reference: with the mobile too, the booking opens straight away.
   await page.getByRole('link', { name: 'Check or change my booking' }).click()
+  await page.getByLabel('Mobile number').fill(mobile)
+  await page.getByRole('button', { name: 'Find my booking' }).click()
+  await expect(page.getByTestId('booking-ref')).toHaveText(ref)
+
+  // Mobile only: a masked result (no reference, no doctor); entering the reference opens it.
+  await page.getByRole('button', { name: 'Check another booking' }).click()
+  await page.getByLabel('Booking reference').fill('')
   await page.getByLabel('Mobile number').fill(mobile)
   await waitForCaptcha(page)
   await page.getByRole('button', { name: 'Find my booking' }).click()
+  const result = page.getByRole('listitem').filter({ hasText: ref.slice(0, ref.lastIndexOf('-') + 1) + '****' })
+  await expect(result).toBeVisible()
+  await expect(page.getByText(ref, { exact: true })).toHaveCount(0)
+  await result.getByLabel(/enter its booking reference/).fill(ref)
+  await result.getByRole('button', { name: 'Open booking' }).click()
   await expect(page.getByTestId('booking-ref')).toHaveText(ref)
 
   await page.getByRole('button', { name: 'Change date or time' }).click()

@@ -83,6 +83,30 @@ export const useLookupAppointment = () =>
       apiSend<AppointmentView>('POST', '/public/appointments/lookup', input),
   })
 
+/**
+ * One result of "check my booking" with a single field: masked, no doctor. The field that wasn't
+ * given stays hidden (masked reference or mobile); `needs` says which one opens the booking.
+ */
+export interface BookingSummary {
+  bookingRef: string
+  mobileMasked: string
+  patientNameMasked: string
+  date: string
+  startAt: string | null
+  tokenNo: number | null
+  branchName: string
+  branchCity: string
+  status: AppointmentStatus
+  needs: 'MOBILE' | 'BOOKING_REF'
+}
+
+/** Exactly one of bookingRef / mobile (backend FindRequest); needs the captcha. */
+export const useFindAppointments = () =>
+  useMutation({
+    mutationFn: (input: { bookingRef: string | null; mobile: string | null; captchaToken: string | null }) =>
+      apiSend<BookingSummary[]>('POST', '/public/appointments/find', input),
+  })
+
 export const useCancelAppointment = () =>
   useMutation({
     mutationFn: (input: { bookingRef: string; mobile: string; reason: string | null; captchaToken: string | null }) =>
