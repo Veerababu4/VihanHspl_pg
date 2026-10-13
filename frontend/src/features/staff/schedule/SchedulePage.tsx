@@ -29,7 +29,7 @@ export interface ScheduleTabProps {
 const TABS = ['weekly', 'slots', 'leave'] as const
 type Tab = (typeof TABS)[number]
 
-/** Doctor: own schedule. IT Admin: any doctor's (DESIGN.md Â§6 /staff/schedule). */
+/** Doctor: own schedule. IT Admin: any doctor's (DESIGN.md §6 /staff/schedule). */
 export function SchedulePage() {
   const { t } = useTranslation()
   const { user } = useAuth()
@@ -75,7 +75,7 @@ export function SchedulePage() {
                   ?.filter((d) => d.active)
                   .map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.fullName} â€” {d.specialityName}
+                      {d.fullName} — {d.specialityName}
                     </option>
                   ))}
               </select>

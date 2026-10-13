@@ -4,6 +4,11 @@ import { defineConfig } from '@playwright/test'
 // security headers) against the local backend + Oracle with the fictional sample data.
 // Start Docker + the backend first, then `npm run e2e`. Uses the installed Microsoft Edge,
 // so no browser download is needed.
+// E2E_BASE_URL runs the same tests against another, already running site instead (e.g. the
+// Cloudflare Pages runtime from `wrangler pages dev`, DESIGN.md §16); E2E_PASSWORD then gives its
+// sample-login password.
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:4173'
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
@@ -13,16 +18,18 @@ export default defineConfig({
   fullyParallel: false,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL,
     channel: 'msedge',
     viewport: { width: 1280, height: 900 },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: {
-    command: 'npm run build && npm run preview',
-    url: 'http://localhost:4173',
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run build && npm run preview',
+        url: 'http://localhost:4173',
+        reuseExistingServer: true,
+        timeout: 180_000,
+      },
 })

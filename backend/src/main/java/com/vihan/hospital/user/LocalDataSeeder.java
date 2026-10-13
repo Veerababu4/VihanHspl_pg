@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,8 +17,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.vihan.hospital.config.AppProperties;
 
 /**
- * LOCAL PROFILE ONLY: sample staff logins for testing (DESIGN.md §9.4), all with the
- * DEV_SAMPLE_PASSWORD from .env and no forced password change. Never runs in the cloud profile.
+ * SAMPLE DATA ONLY ({@code app.sample-data}: local profile, or a cloud demo with SAMPLE_DATA=true):
+ * sample staff logins for testing (DESIGN.md §9.4), all with the DEV_SAMPLE_PASSWORD from .env and
+ * no forced password change. Never enabled where real patients are recorded.
  * Later milestones add sample slots, appointments, patients and visits here.
  *
  * <pre>
@@ -28,7 +29,7 @@ import com.vihan.hospital.config.AppProperties;
  * </pre>
  */
 @Component
-@Profile("local")
+@ConditionalOnProperty(name = "app.sample-data", havingValue = "true")
 @Order(2)
 public class LocalDataSeeder implements ApplicationRunner {
 

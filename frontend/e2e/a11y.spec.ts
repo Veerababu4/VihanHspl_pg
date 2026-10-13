@@ -59,7 +59,8 @@ async function expectFocusTrapped(page: Page, opener: Locator, label: string): P
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
   const focusInside = () => dialog.evaluate((d) => d.contains(document.activeElement))
-  expect(await focusInside(), `${label}: focus moves into the dialog`).toBe(true)
+  // The dialog moves focus in an effect right after it appears, so allow it a moment.
+  await expect.poll(focusInside, { message: `${label}: focus moves into the dialog`, timeout: 2_000 }).toBe(true)
   for (let i = 0; i < 30; i++) {
     await page.keyboard.press(i % 4 === 3 ? 'Shift+Tab' : 'Tab')
     expect(await focusInside(), `${label}: focus after key ${i + 1}`).toBe(true)

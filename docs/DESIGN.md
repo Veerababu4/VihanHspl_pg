@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Version** | 0.13 — M9 hardening: security headers §12.4, E2E / performance / accessibility §15 (v0.2: hosting path §16.1–16.2, gap analysis §19, reschedule, reports · v0.3: all open questions decided §17 · v0.4: M1 Foundation done, versions pinned §7, local setup §14 · v0.5: M2 public website + admin APIs, admin screens moved to M3 §18 · v0.6: M3 auth, users, audit, admin screens §12.2 · v0.7: M4 scheduling §10.2 · v0.8: M5 booking §10.3 · v0.9: M6 reception, dashboard, reports §10.4–10.6, §11.4 · v0.10: M7 patients, Aadhaar §10.7, §11.5 · v0.11: M8 clinical §11.6 · v0.12: free hosting on Oracle Cloud Always Free §16 · v0.13: M9 hardening §12.4, §15) |
+| **Version** | 0.14 (PostgreSQL edition) — §16.3 free hosting on Cloudflare Pages + Render + Neon, PostgreSQL instead of Oracle (v0.2: hosting path §16.1–16.2, gap analysis §19, reschedule, reports · v0.3: all open questions decided §17 · v0.4: M1 Foundation done, versions pinned §7, local setup §14 · v0.5: M2 public website + admin APIs, admin screens moved to M3 §18 · v0.6: M3 auth, users, audit, admin screens §12.2 · v0.7: M4 scheduling §10.2 · v0.8: M5 booking §10.3 · v0.9: M6 reception, dashboard, reports §10.4–10.6, §11.4 · v0.10: M7 patients, Aadhaar §10.7, §11.5 · v0.11: M8 clinical §11.6 · v0.12: free hosting on Oracle Cloud Always Free §16 · v0.13: M9 hardening §12.4, §15 · v0.14: PostgreSQL edition, §16.3) |
 | **Date** | 2026-10-12 |
 | **Owner** | Veera |
-| **Status** | Signed off → M1 ✅ → M2 ✅ → M3 ✅ → M4 ✅ → M5 ✅ → M6 ✅ → M7 ✅ → M8 ✅ → **M9 hardening complete (2026-10-12)** → M10 deployment next |
+| **Status** | Signed off → M1 ✅ → M2 ✅ → M3 ✅ → M4 ✅ → M5 ✅ → M6 ✅ → M7 ✅ → M8 ✅ → M9 ✅ (2026-10-12) → **PostgreSQL edition, M10 on free hosting (§16.3; 2026-10-13: built and tested locally, accounts not yet created)** |
 
 > **How to review:** Read sections 1–6 for *what* we are building, 7–12 for *how*, and 13–16 for setup/deployment/plan.
 > **Section 19 explains how the 8 additional requirements found during the initial review are handled.**
@@ -1049,6 +1049,31 @@ The design is host-agnostic, so moving is a redeploy, not a rewrite:
 
 **Go-live checklist:** OCI home region Hyderabad, account on Pay As You Go with a ₹100 budget alert, only Always Free resources · UptimeRobot alert set · domain on a hospital-owned account with 2FA · real `.env` on VM with strong secrets · **`AADHAAR_ENC_KEY` / `AADHAAR_HASH_KEY` generated fresh and backed up outside the server** (never reuse the local ones) · real Turnstile keys (site key in the frontend build, secret in `.env`) and `TURNSTILE_HOSTNAME` set · `SPRING_PROFILES_ACTIVE=cloud` · Swagger disabled · bootstrap admin password changed · HTTPS verified · backup job (Data Pump export / DB backups) scheduled and a restore tested · privacy policy page live.
 
+### 16.3 PostgreSQL edition: Cloudflare Pages + Render + Neon (as built, 2026-10-13)
+
+*Decided 2026-10-13:* the Oracle Cloud sign-up kept failing, and this is a personal learning project,
+so the **PostgreSQL edition** (repo `VihanHspl_pg`, branch `postgres-port`) runs on three free services with
+no server to maintain. The Oracle edition stays unchanged on `main` of `VihanHspl`; the rest of §16 describes it.
+
+| Part | Service (free plan) | How |
+|---|---|---|
+| Website | **Cloudflare Pages** (`<project>.pages.dev`) | `frontend/` build; security headers from `public/_headers` (kept identical to `security-headers.ts` by its test); unknown paths get `index.html` |
+| `/api`, `/files` | **Pages Functions** (`frontend/functions`, `cloudflare/proxy.ts`) | Forward to the backend with `X-Proxy-Secret`, the visitor IP (`CF-Connecting-IP` → `Forwarded` / `X-Forwarded-For`) and the site host, so the browser sees one origin (refresh cookie `SameSite=Strict`, CSP `connect-src 'self'` unchanged) |
+| Backend | **Render** web service, Docker (`backend/Dockerfile`, `render.yaml`), Singapore | `cloud` profile; 512 MB (SerialGC, C1 only; ~310 MB used). `ProxySecretFilter` answers 404 to any request without the secret except `/actuator/health`, so the `onrender.com` URL can't be used directly and forwarded IPs can be trusted. Sleeps after 15 min idle; the startup catch-up of slot generation and no-shows (§10.2, §10.4) covers missed nightly runs |
+| Database | **Neon** PostgreSQL 17, Singapore | Direct (unpooled) connection for Flyway; Hikari `minimum-idle: 0` so Neon can scale to zero |
+| Images | In the database (`V5` `stored_file`, `DatabaseFileStorage`, `FileController`) | Render's disk is wiped on every restart; `FILE_STORAGE=disk` keeps the old disk storage |
+| Demo data | `SAMPLE_DATA=true` + `FLYWAY_LOCATIONS=…,classpath:db/dev-data` | The seeders now run on `app.sample-data`, not on the `local` profile; the site shows the sample-data banner |
+
+**Port from Oracle:** BOOLEAN flags instead of `NUMBER(1)`; identity columns; partial unique index for one active
+appointment per slot; `COALESCE` instead of `NVL`; `nextval('seq_uhid')`; `LOCALTIMESTAMP` with the session zone
+pinned to IST (`connection-init-sql`); `DATE_TRUNC` in reports; `ON CONFLICT` upserts in sample data; clinical notes
+as `TEXT`; null date filters in JPQL cast (`cast(:from as LocalDateTime)`), because PostgreSQL can't type an untyped null.
+
+**Verified locally (2026-10-13):** backend 179/179 on a PostgreSQL Testcontainer; frontend 67/67; the Docker image
+under a 512 MB limit on an empty database (migrations, sample data, 3,336 slots, health UP, 404 without the secret);
+E2E 9/9 both on `vite preview` and through the real Pages runtime (`wrangler pages dev`) in front of that container.
+Steps for the accounts and secrets: `deploy/README.md`.
+
 ---
 
 ## 17. Decisions (Open Questions — Answered)
@@ -1215,4 +1240,4 @@ The original input had 10 points. The initial review found **8 further requireme
 
 ---
 
-*End of document — v0.13.*
+*End of document — v0.14 (PostgreSQL edition).*

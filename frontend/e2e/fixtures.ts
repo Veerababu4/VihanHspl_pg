@@ -57,10 +57,11 @@ export function randomMobile(): string {
  * Without a site key there is no widget and nothing to wait for.
  */
 export async function waitForCaptcha(page: Page): Promise<void> {
-  const widgets = page.locator('input[name="cf-turnstile-response"]')
   await page.waitForTimeout(500)   // a widget mounted by the click before this one
-  for (const input of await widgets.all()) {
-    await expect(input).not.toHaveValue('', { timeout: 20_000 })
+  // Each captcha box (data-testid="captcha") gets its token input only once Cloudflare's script
+  // has loaded, which can take seconds; waiting per box never mistakes "not loaded yet" for "none".
+  for (const box of await page.getByTestId('captcha').all()) {
+    await expect(box.locator('input[name="cf-turnstile-response"]')).not.toHaveValue('', { timeout: 20_000 })
   }
 }
 

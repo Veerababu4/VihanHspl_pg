@@ -1,17 +1,26 @@
-# Free-hosting deployment: Oracle Autonomous DB (wallet / TLS), no sample data, Swagger off.
+# Free-hosting deployment (DESIGN.md §16): Render web service (Docker) + Neon PostgreSQL, behind
+# the Cloudflare Pages website, which forwards /api and /files here. Swagger off.
+# Set in the Render dashboard: DB_URL, DB_USER, DB_PASSWORD, JWT_SECRET, AADHAAR_ENC_KEY,
+# AADHAAR_HASH_KEY, BOOTSTRAP_ADMIN_PASSWORD, PROXY_SECRET, CORS_ALLOWED_ORIGINS, TURNSTILE_* (see render.yaml).
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 5    # Always Free ADB has a low session limit
+      maximum-pool-size: 5
+      # Close idle connections, so the Neon database can scale to zero when nobody uses the site.
+      minimum-idle: 0
+      idle-timeout: 120000
+      max-lifetime: 600000
+  # SAMPLE_DATA=true: a public demo with the fictional doctors, staff logins and patients (§9.4).
+  flyway:
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
 
 server:
-  # Only Caddy on the same VM can reach the app, so the X-Forwarded-* headers it sets can be trusted.
-  address: ${SERVER_ADDRESS:127.0.0.1}
-  forward-headers-strategy: framework   # behind Caddy reverse proxy
+  # Requests arrive through the website's proxy (X-Forwarded-For / -Host / -Proto). They are only
+  # trusted because ProxySecretFilter rejects every request that didn't come through that proxy.
+  forward-headers-strategy: framework
 
-logging:
-  file:
-    name: ${LOG_FILE:logs/vihan-hospital.log}
-  logback:
-    rollingpolicy:
-      max-history: 30
+app:
+  sample-data: ${SAMPLE_DATA:false}
+  proxy-secret: ${PROXY_SECRET:}
+
+# Logs go to stdout; Render keeps them in its dashboard.

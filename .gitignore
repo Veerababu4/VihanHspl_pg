@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 *.oracle-container.env
+deploy/cloud-secrets.env
 .oracle-container.env
 wallet/
 *.jks
@@ -23,6 +24,7 @@ frontend/dist/
 frontend/coverage/
 frontend/test-results/
 frontend/playwright-report/
+frontend/.wrangler/
 *.local
 
 # ---- IDE / OS ----

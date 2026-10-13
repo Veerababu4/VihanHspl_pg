@@ -78,7 +78,7 @@ export function Turnstile({ onToken, resetKey = 0 }: { onToken: (token: string |
 
   if (!siteKey) return null
   return (
-    <div>
+    <div data-testid="captcha">
       <div ref={container} className="min-h-[65px]" />
       {failed && (
         <p role="alert" className="text-sm text-emergency-600">

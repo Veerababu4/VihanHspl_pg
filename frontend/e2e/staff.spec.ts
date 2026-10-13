@@ -2,8 +2,11 @@ import type { Page } from '@playwright/test'
 
 import { expect, login, test } from './fixtures.ts'
 
-/** A fictional sample patient (local sample data) and a sample doctor who works at Miryalaguda. */
-const PATIENT_MOBILE = '98687 46210'
+/**
+ * The first fictional sample patients (SamplePatientSeeder, fixed random seed: the same in every
+ * database), a family sharing one mobile, and a sample doctor who works at Miryalaguda.
+ */
+const PATIENT_MOBILE = '96973 36649'
 const DOCTOR = { username: 'doctor001', option: 'Dr. Srinivas Kandula — General Medicine' }
 
 async function completedAtMiryalaguda(page: Page): Promise<number> {

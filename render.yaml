@@ -1,0 +1,53 @@
+# Render Blueprint (DESIGN.md §16): the backend as a free Docker web service.
+# Render → New → Blueprint → pick this repo. Values marked "sync: false" are asked for once in the
+# dashboard (copy them from deploy/cloud-secrets.env, which is git-ignored; never commit them).
+services:
+  - type: web
+    name: vihan-backend
+    runtime: docker
+    plan: free
+    region: singapore                 # nearest Render region to Telangana; Neon in Singapore too
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /actuator/health
+    autoDeploy: true                  # every push to main redeploys
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      - key: PORT
+        value: "8080"
+      # ---- Database (Neon) ----
+      - key: DB_URL                   # jdbc:postgresql://<host>/<db>?sslmode=require
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # ---- Security ----
+      - key: JWT_SECRET
+        sync: false
+      - key: AADHAAR_ENC_KEY
+        sync: false
+      - key: AADHAAR_HASH_KEY
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: PROXY_SECRET             # same value in the Cloudflare Pages project
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS     # the website, e.g. https://vihan-hospital.pages.dev
+        sync: false
+      # ---- Captcha (Cloudflare Turnstile; test secret accepts any token) ----
+      - key: TURNSTILE_SECRET_KEY
+        value: 1x0000000000000000000000000000000AA
+      - key: TURNSTILE_HOSTNAME
+        value: ""
+      # ---- Demo with fictional sample data (§9.4); set both to switch it off ----
+      - key: SAMPLE_DATA
+        value: "true"
+      - key: FLYWAY_LOCATIONS
+        value: classpath:db/migration,classpath:db/dev-data
+      - key: DEV_SAMPLE_PASSWORD      # password of itadmin, reception.*, doctor001-020
+        sync: false

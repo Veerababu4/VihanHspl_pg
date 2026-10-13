@@ -5,11 +5,16 @@ hospital network in **Miryalaguda, Huzurnagar and Kodad**.
 
 The full design, decisions and milestones are in **[docs/DESIGN.md](docs/DESIGN.md)**.
 
+> **This is the PostgreSQL edition** (repo `VihanHspl_pg`, branch `postgres-port`), deployed for free on
+> Cloudflare Pages + Render + Neon: see **[deploy/README.md](deploy/README.md)**. The original Oracle edition is the
+> `main` branch of `VihanHspl`.
+
 | Part | Stack | Folder |
 |---|---|---|
 | Backend API | Java 21, Spring Boot 4.1, Spring Security, JPA/Hibernate, Flyway | `backend/` |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query | `frontend/` |
-| Database | Oracle Database Free 23ai (local, Docker) → Oracle Autonomous DB (cloud) | — |
+| Database | PostgreSQL 17 (local: Docker; cloud: Neon) | — |
+| Hosting | Cloudflare Pages (website + `/api` proxy) → Render (backend, Docker) → Neon | `deploy/`, `render.yaml` |
 
 ## Prerequisites
 
@@ -27,22 +32,19 @@ Set `JAVA_HOME` once (PowerShell), then open a new terminal:
 [Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Java\jdk-21.0.12", "User")
 ```
 
-## 1. Start the local Oracle database (first time)
+## 1. Start the local PostgreSQL database (first time)
 
 ```powershell
 cd backend
-# Pick your own passwords. VIHAN_APP is the schema the app uses; Flyway creates all tables in it.
-docker run -d --name vihan-oracle -p 1521:1521 `
-  -e ORACLE_PASSWORD=<system-password> `
-  -e APP_USER=VIHAN_APP -e APP_USER_PASSWORD=<app-password> `
-  -v vihan-oracle-data:/opt/oracle/oradata `
-  gvenzl/oracle-free:23-slim-faststart
-docker logs -f vihan-oracle      # wait for "DATABASE IS READY TO USE!", then Ctrl+C
+# Pick your own password. vihan_app owns the database; Flyway creates all tables in it.
+docker run -d --name vihan-pg --restart unless-stopped -p 5432:5432 `
+  -e POSTGRES_DB=vihan -e POSTGRES_USER=vihan_app -e POSTGRES_PASSWORD=<app-password> `
+  -e TZ=Asia/Kolkata -v vihan-pg-data:/var/lib/postgresql/data `
+  postgres:17-alpine
 ```
 
-After that, start or stop it with `docker start vihan-oracle` / `docker stop vihan-oracle`.
-Data survives restarts (volume `vihan-oracle-data`).
-To **reset** the database completely: `docker rm -f vihan-oracle; docker volume rm vihan-oracle-data`, then run the command above again.
+It starts with Docker Desktop. Data survives restarts (volume `vihan-pg-data`).
+To **reset** the database completely: `docker rm -f vihan-pg; docker volume rm vihan-pg-data`, then run the command above again.
 
 ## 2. Configure the backend
 
@@ -72,8 +74,8 @@ npm run dev
 ```
 
 On first start, Flyway creates the schema (`V1`), the reference data (`V2`: 3 branches, 18 specialities) and,
-in the `local` profile only, the **fictional sample data** (`db/dev-data`: 20 doctors with weekly schedules, placeholder gallery photos).
-Uploaded images go to `backend/uploads/` (git-ignored).
+in the `local` profile (or the cloud demo with `SAMPLE_DATA=true`), the **fictional sample data** (`db/dev-data`: 20 doctors with weekly schedules, placeholder gallery photos).
+Uploaded images are stored in the database (table `stored_file`; `FILE_STORAGE=disk` keeps them in `backend/uploads/` instead).
 The website shows a yellow **SAMPLE DATA** banner while sample data is in use.
 
 | URL | What |
@@ -133,13 +135,13 @@ Open http://localhost:5173/staff/login.
 | `reception.mlg`, `reception.hzn`, `reception.kdd` | Receptionist at that branch (sample) | `DEV_SAMPLE_PASSWORD` |
 | `doctor001` … `doctor020` | Doctor login for sample doctor SAMPLE-001 … 020 (sees only their own schedule, appointments and dashboard) | `DEV_SAMPLE_PASSWORD` |
 
-Sample logins exist only in the `local` profile. Five wrong passwords lock an account for 15 minutes;
+Sample logins exist only while sample data is on (`local` profile, or `SAMPLE_DATA=true` in the cloud demo). Five wrong passwords lock an account for 15 minutes;
 an IT Admin can unlock it with "Reset password".
 
 ## Tests
 
 ```powershell
-cd backend;  .\mvnw test          # unit tests + integration tests on a throwaway Oracle container (needs Docker)
+cd backend;  .\mvnw test          # unit tests + integration tests on a throwaway PostgreSQL container (needs Docker)
 cd frontend; npm test             # Vitest + React Testing Library
 cd frontend; npm run lint; npm run typecheck; npm run build
 ```
@@ -158,12 +160,14 @@ npx playwright show-report                    # HTML report, with a trace of any
 
 Every E2E test fails on a Content-Security-Policy violation or a browser error. The tests use the sample logins
 (`DEV_SAMPLE_PASSWORD` from `backend/.env`, or set `E2E_PASSWORD`) and add bookings and walk-ins to the local database.
+`E2E_BASE_URL` runs them against a site that is already running instead, e.g. the Cloudflare Pages runtime:
+`npx wrangler pages dev dist --binding BACKEND_URL=http://localhost:8081 --binding PROXY_SECRET=…` (port 8788).
 
 **Performance check** (run on request, not part of `mvnw test`): `cd backend; .\mvnw test -Dgroups=perf -Dperf.excluded=`.
 It loads a year of data into the throwaway test container (never the development database) and times the heavy screens.
 
 **Production build with the real security headers:** `cd frontend; npm run build; npm run preview` →
-http://localhost:4173 (the dev server on :5173 doesn't send them). In production, Caddy sends the same headers (`deploy/Caddyfile`).
+http://localhost:4173 (the dev server on :5173 doesn't send them). In production, Cloudflare Pages sends the same headers (`frontend/public/_headers`; `deploy/Caddyfile` for an own server).
 
 **UAT:** `docs/UAT-CHECKLIST.md` is the go-live checklist for hospital staff.
 
@@ -189,11 +193,12 @@ backend/
     notification/  SMS / WhatsApp hook (log-only in Phase 1)
     branch/ speciality/ doctor/ gallery/   public API (/api/public/**) + IT Admin API (/api/admin/**)
     schedule/    weekly timetables, slot planner + reconciler, leave, holidays, nightly slot job
-    storage/     image upload checks, resizing, file storage, /files/** serving
+    storage/     image upload checks, resizing, file storage (database or disk), /files/** serving
   src/main/resources/
     application.yml (+ -local / -cloud)
-    db/migration/  Flyway: V1 schema, V2 reference data, V3 scheduling, V4 reception indexes (all environments)
-    db/dev-data/   Flyway: fictional sample data (local profile only)
+    db/migration/  Flyway: V1 schema, V2 reference data, V3 scheduling, V4 reception indexes, V5 stored files
+    db/dev-data/   Flyway: fictional sample data (local profile; cloud demo with SAMPLE_DATA=true)
+  Dockerfile       backend image for Render (512 MB)
 frontend/
   src/api/        typed API client + React Query hooks
   src/components/ layout and shared UI
@@ -203,8 +208,11 @@ frontend/
   public/placeholders/  labelled placeholder images used by the local sample data
   src/locales/    UI text (en.json; Telugu in Phase 2)
   e2e/            Playwright end-to-end + accessibility tests (npm run e2e)
-  security-headers.ts   website security headers (preview server; mirrored in deploy/Caddyfile)
-deploy/Caddyfile  production web server config (draft, finished in M10)
+  security-headers.ts   website security headers (preview server; mirrored in public/_headers and deploy/Caddyfile)
+  functions/ cloudflare/   Cloudflare Pages Functions: /api and /files proxy to the backend
+deploy/README.md  free deployment guide (Neon + Render + Cloudflare Pages); generate-secrets.ps1
+deploy/Caddyfile  web server config for an own server (alternative)
+render.yaml       Render Blueprint for the backend
 docs/DESIGN.md    design, decisions, milestones, as-built notes
 docs/HANDOVER.md  where things stand and how to resume
 docs/UAT-CHECKLIST.md

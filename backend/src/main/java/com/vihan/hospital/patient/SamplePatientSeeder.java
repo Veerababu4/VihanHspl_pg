@@ -11,21 +11,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * LOCAL PROFILE ONLY: about 40 <b>fictional</b> patients (DESIGN.md §9.4) with checksum-valid
+ * SAMPLE DATA ONLY ({@code app.sample-data}): about 40 <b>fictional</b> patients (DESIGN.md §9.4) with checksum-valid
  * fictional Aadhaar numbers, encrypted with the local key like real ones. The numbers come from a
  * fixed random seed, so each sample patient is recognised by its Aadhaar hash and created only
  * once; patients registered by hand are never touched. Every sixth pair shares a mobile number
  * (a family), to show the "same mobile, different person" case. M8 adds about 60 past visits.
  */
 @Component
-@Profile("local")
+@ConditionalOnProperty(name = "app.sample-data", havingValue = "true")
 @Order(3)
 public class SamplePatientSeeder implements ApplicationRunner {
 

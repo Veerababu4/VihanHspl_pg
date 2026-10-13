@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "security-headers.ts", "security-headers.test.ts", "playwright.config.ts", "e2e"]
+  "include": ["vite.config.ts", "security-headers.ts", "security-headers.test.ts", "playwright.config.ts", "e2e", "cloudflare", "functions"]
 }
