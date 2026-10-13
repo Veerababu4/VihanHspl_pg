@@ -5,12 +5,17 @@
 # ---- build ----
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
-# Dependencies first, so code changes don't re-download them.
+# Dependencies first, so code changes don't re-download them. go-offline misses the compiler's
+# annotation processors, so compile a throwaway class too. The real build then runs offline (-o):
+# Maven Central answers shared build hosts with 429 Too Many Requests now and then.
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
-RUN sh mvnw -q -B dependency:go-offline
+RUN sh mvnw -q -B dependency:go-offline \
+ && mkdir -p src/main/java && echo 'class Warmup { public static void main(String[] a) {} }' > src/main/java/Warmup.java \
+ && sh mvnw -q -B package -DskipTests \
+ && rm -rf src target
 COPY src src
-RUN sh mvnw -q -B package -DskipTests \
+RUN sh mvnw -o -q -B package -DskipTests \
  && java -Djarmode=tools -jar target/hospital-*.jar extract --layers --launcher --destination /app
 
 # ---- run ----
