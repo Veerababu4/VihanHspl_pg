@@ -5,9 +5,8 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
 
 ## 0. Resume here (next session)
 
-**Work in progress:** branch **`feature/booking-lookup-and-staff-logout`** (commit `b975493`, on top of `main`
-`06619a5`), **draft PR #3**: https://github.com/Veerababu4/VihanHspl_pg/pull/3. Not merged, not deployed.
-`git switch feature/booking-lookup-and-staff-logout` before continuing.
+**Last shipped:** PR #3 https://github.com/Veerababu4/VihanHspl_pg/pull/3 (merged and live). Open: the E2E fix PR
+from branch `fix/e2e-a11y-captcha-idle` (see below).
 
 What it does (both asked for by the user on 2026-10-13):
 1. **Check my booking with one field.** The user chose "find with either, act with both":
@@ -21,21 +20,17 @@ What it does (both asked for by the user on 2026-10-13):
 2. **Staff Log out at the top right:** a top bar shows the name, role, a "View website" link and **Log out**. It's on
    every staff screen and on the forced password-change screen. On phones it stays in the ☰ menu.
 
-Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **8/9**.
+Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **9/9**.
 
-**Open issue (fix first):** E2E `a11y.spec.ts › public pages meet WCAG 2.1 AA` times out in
-`page.waitForLoadState('networkidle')` on the **booking details step** (`/book`, heading "Book an appointment"; the
-Cloudflare Turnstile widget is on that step).
-- It passed 9/9 several times earlier on 2026-10-13, so it may be flaky (Turnstile network traffic, or a slow PC
-  with low memory). It isn't caused by the new code: `/book` didn't change.
-- Steps: re-run `npx playwright test e2e/a11y.spec.ts`. If it still fails, make `expectAccessible` wait for the
-  page's main heading, or skip `networkidle` on pages that have a captcha, instead of waiting for `networkidle`.
-- Then: E2E 9/9 → mark PR #3 ready → the user reviews and merges → check the live site (it deploys on merge).
+**Fixed (2026-10-13, later):** E2E `a11y.spec.ts` timed out in `waitForLoadState('networkidle')` on the booking
+details step every time: the Turnstile widget keeps the network busy. `expectAccessible` now waits for `load` and
+the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from 3.7 to 1.7 min.
 
-**Also still open (user):**
-- In Render, switch `DB_USER` / `DB_PASSWORD` to the `vihanhspl` login (§2). Afterwards check that the app runs as
-  `vihanhspl`.
-- UptimeRobot (optional).
+**PR #3 was merged by the user on 2026-10-13** (merge `1e91e81`, deployed), before the fix above was pushed; the
+fix went into its own PR (branch `fix/e2e-a11y-captcha-idle`). **Next:** check the live site (one-field "Check my
+booking", staff Log out bar), ideally the live E2E run (§2).
+
+**Also still open (user):** UptimeRobot (optional).
 
 ## 1. Two editions, two repos
 
@@ -78,8 +73,8 @@ polls, mojibake "â€”" on the Schedule page.
 Oracle), not in `public`. Code: `DB_SCHEMA` (`application.yml`, `render.yaml`). The live data was moved by hand:
 `deploy/sql/2026-10-13-move-to-vihanhspl-schema.sql` (PR #1). `cloud-secrets.env`: `DB_USER` / `DB_PASSWORD` = the app
 login `vihanhspl`; `DB_OWNER_USER` / `DB_OWNER_PASSWORD` = `neondb_owner` (admin only, never in Render).
-- **To do (user):** in Render set `DB_USER=vihanhspl` and `DB_PASSWORD` (the app login from `cloud-secrets.env`). Until
-  then the app still logs in as `neondb_owner`. Afterwards: check the app runs as `vihanhspl` and run the live E2E.
+- Render still has `DB_USER` / `DB_PASSWORD` = `neondb_owner`, so the live app logs in as the owner. The user chose
+  (2026-10-13) not to switch it to `vihanhspl`: don't raise it as a to-do.
 - SQL Developer (user's desktop): PostgreSQL tab, Hostname `<neon host>/neondb?` (the `/neondb?` trick, because the
   Database field can't be set before connecting), Port `5432`, user `vihanhspl` or `neondb_owner`.
 
@@ -136,6 +131,8 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   for memory. Run heavy things one at a time and stop the local backend when it's not needed.
 - PowerShell: `R` is a built-in alias (`Invoke-History`), so don't name helper functions `R`. In `gh … --jq`, quote
   expressions with spaces carefully, or use simple expressions such as `.ahead_by`.
+- E2E: never wait for `networkidle` unbounded on a page with a Turnstile captcha; it may never come.
+- `gh` isn't on PATH in the PowerShell tool: call `& "C:\Program Files\GitHub CLI\gh.exe"`.
 - Feature branches: `git switch --no-track -c <branch> origin/main`. A plain `-c … origin/main` makes `main` the
   upstream, and then `git push` would go to production.
 - E2E pages that wait for `networkidle` fail if a page loads Cloudflare Turnstile on arrival. That's why "Check my
