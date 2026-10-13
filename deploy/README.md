@@ -1,6 +1,6 @@
 # Deploying for free: Cloudflare Pages + Render + Neon
 
-*Branch `postgres-port` / repo `VihanHspl_pg` (DESIGN.md §16). ₹0/month; no server to look after.*
+*Repo `VihanHspl_pg`, branch `main` (DESIGN.md §16). ₹0/month; no server to look after.*
 
 ```
 Browser ──► Cloudflare Pages  https://<project>.pages.dev

@@ -5,7 +5,7 @@ hospital network in **Miryalaguda, Huzurnagar and Kodad**.
 
 The full design, decisions and milestones are in **[docs/DESIGN.md](docs/DESIGN.md)**.
 
-> **This is the PostgreSQL edition** (repo `VihanHspl_pg`, branch `postgres-port`), deployed for free on
+> **This is the PostgreSQL edition** (repo `VihanHspl_pg`, branch `main`), deployed for free on
 > Cloudflare Pages + Render + Neon: see **[deploy/README.md](deploy/README.md)**. The original Oracle edition is the
 > `main` branch of `VihanHspl`.
 >
