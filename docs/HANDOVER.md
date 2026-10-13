@@ -5,9 +5,8 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
 
 ## 0. Resume here (next session)
 
-**Work in progress:** branch **`feature/booking-lookup-and-staff-logout`** (commit `b975493`, on top of `main`
-`06619a5`), **draft PR #3**: https://github.com/Veerababu4/VihanHspl_pg/pull/3. Not merged, not deployed.
-`git switch feature/booking-lookup-and-staff-logout` before continuing.
+**Last shipped:** PR #3 https://github.com/Veerababu4/VihanHspl_pg/pull/3 (merged and live). Open: the E2E fix PR
+from branch `fix/e2e-a11y-captcha-idle` (see below).
 
 What it does (both asked for by the user on 2026-10-13):
 1. **Check my booking with one field.** The user chose "find with either, act with both":
@@ -27,7 +26,9 @@ Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and type
 details step every time: the Turnstile widget keeps the network busy. `expectAccessible` now waits for `load` and
 the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from 3.7 to 1.7 min.
 
-**Next:** PR #3 ready for review → the user reviews and merges → check the live site (it deploys on merge).
+**PR #3 was merged by the user on 2026-10-13** (merge `1e91e81`, deployed), before the fix above was pushed; the
+fix went into its own PR (branch `fix/e2e-a11y-captcha-idle`). **Next:** check the live site (one-field "Check my
+booking", staff Log out bar), ideally the live E2E run (§2).
 
 **Also still open (user):**
 - In Render, switch `DB_USER` / `DB_PASSWORD` to the `vihanhspl` login (§2). Afterwards check that the app runs as
