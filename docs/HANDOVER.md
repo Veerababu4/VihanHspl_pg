@@ -30,10 +30,7 @@ the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from
 fix went into its own PR (branch `fix/e2e-a11y-captcha-idle`). **Next:** check the live site (one-field "Check my
 booking", staff Log out bar), ideally the live E2E run (§2).
 
-**Also still open (user):**
-- In Render, switch `DB_USER` / `DB_PASSWORD` to the `vihanhspl` login (§2). Afterwards check that the app runs as
-  `vihanhspl`.
-- UptimeRobot (optional).
+**Also still open (user):** UptimeRobot (optional).
 
 ## 1. Two editions, two repos
 
@@ -76,8 +73,8 @@ polls, mojibake "â€”" on the Schedule page.
 Oracle), not in `public`. Code: `DB_SCHEMA` (`application.yml`, `render.yaml`). The live data was moved by hand:
 `deploy/sql/2026-10-13-move-to-vihanhspl-schema.sql` (PR #1). `cloud-secrets.env`: `DB_USER` / `DB_PASSWORD` = the app
 login `vihanhspl`; `DB_OWNER_USER` / `DB_OWNER_PASSWORD` = `neondb_owner` (admin only, never in Render).
-- **To do (user):** in Render set `DB_USER=vihanhspl` and `DB_PASSWORD` (the app login from `cloud-secrets.env`). Until
-  then the app still logs in as `neondb_owner`. Afterwards: check the app runs as `vihanhspl` and run the live E2E.
+- Render still has `DB_USER` / `DB_PASSWORD` = `neondb_owner`, so the live app logs in as the owner. The user chose
+  (2026-10-13) not to switch it to `vihanhspl`: don't raise it as a to-do.
 - SQL Developer (user's desktop): PostgreSQL tab, Hostname `<neon host>/neondb?` (the `/neondb?` trick, because the
   Database field can't be set before connecting), Port `5432`, user `vihanhspl` or `neondb_owner`.
 
