@@ -1,7 +1,41 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-13 (PostgreSQL edition: **live** at https://vihanhspl-pg.pages.dev, E2E 9/9 on the live site).
+*Updated 2026-10-13, end of session (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
+
+## 0. Resume here (next session)
+
+**Work in progress:** branch **`feature/booking-lookup-and-staff-logout`** (commit `b975493`, on top of `main`
+`06619a5`), **draft PR #3**: https://github.com/Veerababu4/VihanHspl_pg/pull/3. Not merged, not deployed.
+`git switch feature/booking-lookup-and-staff-logout` before continuing.
+
+What it does (both asked for by the user on 2026-10-13):
+1. **Check my booking with one field.** The user chose "find with either, act with both":
+   - `POST /api/public/appointments/find` takes exactly one of the booking ref or the mobile number. It needs the
+     captcha and the lookup rate limit.
+   - It returns masked `BookingSummary` results: name `R*** K***`, no doctor or speciality. Found by mobile, the
+     ref is masked (`VMH-261013-****`); found by ref, the mobile is masked.
+   - Opening, cancelling or rescheduling still needs both fields (the existing `/lookup`).
+   - Page: with both fields the booking opens directly. With one field it lists results, and each result opens once
+     the other field is entered. The captcha shows only for a one-field search.
+2. **Staff Log out at the top right:** a top bar shows the name, role, a "View website" link and **Log out**. It's on
+   every staff screen and on the forced password-change screen. On phones it stays in the ☰ menu.
+
+Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **8/9**.
+
+**Open issue (fix first):** E2E `a11y.spec.ts › public pages meet WCAG 2.1 AA` times out in
+`page.waitForLoadState('networkidle')` on the **booking details step** (`/book`, heading "Book an appointment"; the
+Cloudflare Turnstile widget is on that step).
+- It passed 9/9 several times earlier on 2026-10-13, so it may be flaky (Turnstile network traffic, or a slow PC
+  with low memory). It isn't caused by the new code: `/book` didn't change.
+- Steps: re-run `npx playwright test e2e/a11y.spec.ts`. If it still fails, make `expectAccessible` wait for the
+  page's main heading, or skip `networkidle` on pages that have a captcha, instead of waiting for `networkidle`.
+- Then: E2E 9/9 → mark PR #3 ready → the user reviews and merges → check the live site (it deploys on merge).
+
+**Also still open (user):**
+- In Render, switch `DB_USER` / `DB_PASSWORD` to the `vihanhspl` login (§2). Afterwards check that the app runs as
+  `vihanhspl`.
+- UptimeRobot (optional).
 
 ## 1. Two editions, two repos
 
@@ -66,7 +100,7 @@ cd C:\Veera\Work\Vihan-Hospital-Phase1\frontend; npm run dev                   #
 ## 4. Tests
 
 ```powershell
-cd backend;  .\mvnw test                       # ~3 min, Testcontainers PostgreSQL (Docker must run)
+cd backend;  .\mvnw test                       # 3-14 min (low memory), Testcontainers PostgreSQL (Docker must run)
 cd frontend; npm test; npm run lint; npm run typecheck
 cd frontend; npm run e2e                       # needs the backend on :8080
 # Through the Pages runtime, against the cloud-mode container on :8081:
@@ -98,3 +132,12 @@ cd frontend; npm run e2e                       # needs the backend on :8080
 - `SlotRepository` modifying queries clear the persistence context: re-read entities after `bookIfOpen` / `releaseIfBooked`.
 - Phone layouts: `<fieldset>` and grid items need `min-w-0`.
 - Aadhaar search and duplicate checks use POST bodies, so the number never appears in URLs or logs.
+- **The PC is low on memory.** A full backend test run took 3–14 minutes, and Claude Code once stopped the backend
+  for memory. Run heavy things one at a time and stop the local backend when it's not needed.
+- PowerShell: `R` is a built-in alias (`Invoke-History`), so don't name helper functions `R`. In `gh … --jq`, quote
+  expressions with spaces carefully, or use simple expressions such as `.ahead_by`.
+- Feature branches: `git switch --no-track -c <branch> origin/main`. A plain `-c … origin/main` makes `main` the
+  upstream, and then `git push` would go to production.
+- E2E pages that wait for `networkidle` fail if a page loads Cloudflare Turnstile on arrival. That's why "Check my
+  booking" shows the captcha only for one-field searches.
+- The local DB `vihan` has the app in schema `vihanhspl`; leftovers from before the schema change are in `public`.
