@@ -5,7 +5,16 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
 
 ## 0. Resume here (next session)
 
-**Backend deploys were failing (2026-10-13/14).** Every Render deploy since PR #3 failed: Maven Central answers
+**2026-10-14:** PR #6 deployed (backend live again, `/find` answers 400). Live E2E: **7/9**; the 2 failures were
+real and are fixed on branch `fix/dialog-remount-and-scroll-regions` (PR #7), with the user's report of
+"Failed to fetch dynamically imported module" on `/staff/schedule` and `/staff/queue` (a tab from before a deploy):
+- Users/Doctors dialogs: one `Modal` from "Loading" to the form (swapping dialogs dropped focus for a frame).
+- `ScrollRegion` (`components/ui.tsx`): focusable wrapper for tables that scroll sideways (axe on the live Audit log).
+- `lib/reloadForNewVersion.ts`: every `lazy()` page import reloads once when its old file is gone.
+- Local: E2E **11/11**, unit **69/69** (one earlier run had 2 timeouts while the PC was busy; 3 reruns clean).
+- **After PR #7 deploys:** run the live E2E again (§2), expect 11/11.
+
+**Backend deploys were failing (2026-10-13/14, fixed by PR #6).** Every Render deploy since PR #3 failed: Maven Central answers
 Render's shared build hosts with **429 Too Many Requests** (first for `spring-boot-configuration-processor`, then even
 for the wrapper's Maven download). Cloudflare deployed the frontend fine, so the live site was half-updated: the
 one-field search called `/api/public/appointments/find` on the old backend and got 404.
@@ -137,6 +146,10 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   for memory. Run heavy things one at a time and stop the local backend when it's not needed.
 - PowerShell: `R` is a built-in alias (`Invoke-History`), so don't name helper functions `R`. In `gh … --jq`, quote
   expressions with spaces carefully, or use simple expressions such as `.ahead_by`.
+- A page that waits for data inside a dialog: render one `Modal` and swap its contents, never two `Modal`s
+  (focus drops to the page between them). E2E "a dialog stays the same dialog" checks it.
+- New lazy pages: `lazy(() => import('…').then((m) => ({ default: m.X }), reloadForNewVersion))`.
+- PowerShell 5.1 mangles `"` inside native-exe arguments (`git commit -m`): write the message to a file, `-F`.
 - Docker build: don't fetch from `repo.maven.apache.org` (429 on Render). Keep `MVNW_REPOURL` and
   `-s .mvn/docker-settings.xml` on every `mvnw` call in `backend/Dockerfile`.
 - E2E: never wait for `networkidle` unbounded on a page with a Turnstile captcha; it may never come.
