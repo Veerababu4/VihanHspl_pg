@@ -70,6 +70,62 @@ test('walk-in at reception → doctor completes the visit → the dashboard coun
   expect(await completedAtMiryalaguda(page)).toBe(before + 1)
 })
 
+test('recent bookings: search by name, mobile or booking ID; a doctor sees only their own', async ({ page, browser }) => {
+  // Read-only, so it also runs against the live site. Earlier tests in this run have made bookings.
+  const rows = page.getByRole('main').getByRole('listitem')
+  const search = async (q: string) => {
+    await page.getByLabel('Search bookings').fill(q)
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    // The result line names the search ("2 bookings match “…”"), so this waits for these results.
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    await expect(page.getByText(new RegExp(`match(es)? “${escaped}”`))).toBeVisible()
+    await expect(rows.first(), `a booking matches ${q}`).toBeVisible()
+  }
+
+  await login(page, 'itadmin')
+  await page.goto('/staff/bookings')
+  await expect(page.getByText(/^Latest \d+ booking/)).toBeVisible()
+  const first = rows.first()
+  await expect(first, 'there is at least one booking to search for').toBeVisible()
+  const name = (await first.getAttribute('aria-label'))!.replace(/, [^,]*$/, '')
+  const mobile = (await first.locator('a[href^="tel:"]').textContent())!.trim()
+  const ref = (await first.locator('.font-mono').textContent())!.trim()
+
+  await search(ref.replaceAll('-', ''))   // a full booking ID works without the dashes
+  await expect(rows.first().locator('.font-mono')).toHaveText(ref)
+
+  await search(mobile)
+  for (const row of await rows.all()) await expect(row.locator('a[href^="tel:"]')).toHaveText(mobile)
+
+  const word = name.split(' ')[0].toLowerCase()   // part of the name, any case
+  await search(word)
+  for (const row of await rows.all()) expect((await row.getAttribute('aria-label'))!.toLowerCase()).toContain(word)
+
+  await page.getByRole('button', { name: 'Show latest' }).click()
+  await expect(page.getByText(/^Latest \d+ booking/)).toBeVisible()
+
+  // Reception and a doctor, each in a separate browser session.
+  const openAs = async (username: string) => {
+    const context = await browser.newContext()
+    const other = await context.newPage()
+    await login(other, username)
+    await other.goto('/staff/bookings')
+    return { context, other }
+  }
+  const reception = await openAs('reception.mlg')
+  await expect(reception.other.getByText('The latest 20 bookings, newest first.')).toBeVisible()
+  await reception.context.close()
+
+  const doctor = await openAs(DOCTOR.username)   // the walk-in test above booked them today
+  await expect(doctor.other.getByText('Your latest 20 bookings, newest first.')).toBeVisible()
+  await expect(doctor.other.getByText(/^Latest \d+ booking|^No bookings yet/)).toBeVisible()
+  const doctorName = DOCTOR.option.split(' — ')[0]
+  for (const row of await doctor.other.getByRole('main').getByRole('listitem').all()) {
+    await expect(row.getByText(doctorName, { exact: true })).toBeVisible()
+  }
+  await doctor.context.close()
+})
+
 test('reception never sees clinical pages', async ({ page }) => {
   await login(page, 'reception.mlg')
   await expect(page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: 'My queue' })).toHaveCount(0)

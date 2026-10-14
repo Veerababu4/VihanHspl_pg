@@ -45,7 +45,7 @@ test('staff screens meet WCAG 2.1 AA (automated checks)', async ({ page }) => {
   await page.goto('/staff/login')
   await expectAccessible(page, 'login')
   await login(page, 'itadmin')
-  for (const path of ['/staff/dashboard', '/staff/appointments', '/staff/patients', '/staff/patients/new', '/staff/reports',
+  for (const path of ['/staff/dashboard', '/staff/appointments', '/staff/bookings','/staff/patients', '/staff/patients/new', '/staff/reports',
     '/staff/schedule', '/staff/book', '/staff/profile', '/staff/admin/users', '/staff/admin/doctors', '/staff/admin/branches',
     '/staff/admin/gallery', '/staff/admin/audit']) {
     await page.goto(path)
