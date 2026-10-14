@@ -799,6 +799,7 @@ As built: the manual session endpoint is `POST /staff/doctors/{id}/slots` `{bran
 | PATCH | `/staff/appointments/{id}/status` `{status, reason}` | R, A, D(own) |
 | POST | `/staff/appointments/{id}/reschedule` `{newSlotId, reason}` | R, A |
 | GET | `/staff/appointments/needs-action?branch=` | R, A |
+| GET | `/staff/appointments/recent?q=` (latest 20 bookings; `q` = name, mobile or booking ref, any date) | R, A, D(own) |
 | GET | `/staff/appointments/{id}/patient-matches` (candidates by mobile/name) | R, A |
 | POST | `/staff/appointments/{id}/check-in` `{patientId}` → creates visit | R, A |
 | GET | `/staff/dashboard/summary?date=&branch=` | R, A, D(own) |
@@ -806,6 +807,8 @@ As built: the manual session endpoint is `POST /staff/doctors/{id}/slots` `{bran
 | GET | `/staff/reports/{reportType}?from=&to=&branch=&format=json\|csv\|xlsx` | R, A |
 
 As built (M6): walk-ins have their own endpoint, `POST /staff/appointments/walk-in` `{patientId, doctorId, branch, reason}` (R, A); `POST /staff/appointments` stays counter / phone booking. `branch` is always the branch **code** (`MLG`, `HZN`, `KDD`; blank = all); a receptionist's screens start on the home branch. `PATCH …/status` accepts `NO_SHOW | CANCELLED | COMPLETED` (check-in has its own endpoint because it needs a patient). The export takes `&format=csv|xlsx` (default xlsx); reports also take `&period=day|month`. List rows carry the full mobile (staff only), UHID once linked, the "often doesn't come" flag and `actions`. A doctor's list and dashboard are always their own, whatever `doctor=` says. The public "check my booking" view now includes `date` (a walk-in has no `startAt`).
+
+Added 2026-10-14: **Recent bookings** (`/staff/bookings`, all staff roles). `GET …/recent` returns the 20 most recently *made* bookings (by `created_at`, newest first; a doctor gets only their own). With `q` it searches every date: name (contains, any case), mobile (3 or more digits, contains) or booking reference (contains, any case; a full reference may be typed without dashes), newest 20 matches; `%` and `_` are matched literally. Rows have no action buttons there; "Open in day list" opens `/staff/appointments` on the booking's date with the reference as the search.
 
 ### 11.5 Staff — patients
 | Method | Path | Roles |

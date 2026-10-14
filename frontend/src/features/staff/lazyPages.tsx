@@ -10,6 +10,7 @@ export const RequireRole = lazy(() => import('./StaffLayout').then((m) => ({ def
 export const LoginPage = lazy(() => import('./LoginPage').then((m) => ({ default: m.LoginPage })))
 export const DashboardPage = lazy(() => import('./dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 export const AppointmentsPage = lazy(() => import('./appointments/AppointmentsPage').then((m) => ({ default: m.AppointmentsPage })))
+export const RecentBookingsPage = lazy(() => import('./appointments/RecentBookingsPage').then((m) => ({ default: m.RecentBookingsPage })))
 export const PatientsPage = lazy(() => import('./patients/PatientsPage').then((m) => ({ default: m.PatientsPage })))
 export const NewPatientPage = lazy(() => import('./patients/PatientsPage').then((m) => ({ default: m.NewPatientPage })))
 export const PatientProfilePage = lazy(() => import('./patients/PatientProfilePage').then((m) => ({ default: m.PatientProfilePage })))

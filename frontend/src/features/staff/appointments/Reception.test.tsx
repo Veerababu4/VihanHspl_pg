@@ -258,3 +258,45 @@ describe('Reports', () => {
     expect(screen.queryByRole('link', { name: 'Reports' })).not.toBeInTheDocument()
   })
 })
+
+describe('Recent bookings', () => {
+  it('shows the latest bookings and searches by name, mobile or booking ID', async () => {
+    const older = booking({ id: 30, bookingRef: 'VMH-250101-AB23', patientName: 'Sita Rani', date: '2025-01-03', startAt: '2025-01-03T11:00:00', status: 'COMPLETED', actions: noActions })
+    mockApi({
+      ...deskApi,
+      '/staff/appointments/recent': [booking()],
+      '/staff/appointments/recent?q=sita': [older],
+      '/staff/appointments/recent?q=nobody': [],
+    })
+    renderRoutes(routes, '/staff/bookings')
+
+    const latest = await row(/^Ravi Kumar/)
+    expect(screen.getByText('Latest 1 booking')).toBeInTheDocument()
+    expect(within(latest).queryByRole('button', { name: 'Check in' })).not.toBeInTheDocument()   // actions are on the day list
+    expect(within(latest).getByRole('link', { name: 'Open in day list' })).toHaveAttribute(
+      'href', `/staff/appointments?date=${today}&branch=&q=VMH-261007-7K3Q`,
+    )
+    expect(screen.getByRole('link', { name: 'Recent bookings' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search bookings'), { target: { value: ' sita ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    const found = await row(/^Sita Rani/)
+    expect(within(found).getByText('Fri, 3 Jan 2025')).toBeInTheDocument()   // another year shows the year
+    expect(screen.getByText('1 booking matches “sita”')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search bookings'), { target: { value: 'nobody' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    expect(await screen.findByText('No bookings match “nobody”.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show latest' }))
+    expect(await row(/^Ravi Kumar/)).toBeInTheDocument()
+  })
+
+  it('is open to doctors, with their own bookings', async () => {
+    mockApi({ ...layoutApi, 'POST /auth/refresh': session(doctor), '/staff/appointments/recent': [booking()] })
+    renderRoutes(routes, '/staff/bookings')
+
+    expect(await row(/^Ravi Kumar/)).toBeInTheDocument()
+    expect(screen.getByText('Your latest 20 bookings, newest first. Search finds your bookings on any date.')).toBeInTheDocument()
+  })
+})

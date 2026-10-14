@@ -213,14 +213,18 @@ export function AppointmentsPage() {
 
 type RowAction = 'checkIn' | 'noShow' | 'cancel' | 'complete' | 'reschedule'
 
-function AppointmentRow({
+/**
+ * One appointment. Without {@code onAction} (lists outside this page) the row links to its day list,
+ * where the actions are; a full booking reference finds it there on any date.
+ */
+export function AppointmentRow({
   appointment: a,
   showDate,
   onAction,
 }: {
   appointment: StaffAppointment
   showDate?: boolean
-  onAction: (kind: RowAction) => void
+  onAction?: (kind: RowAction) => void
 }) {
   const { t } = useTranslation()
   const { user } = useAuth()
@@ -240,7 +244,12 @@ function AppointmentRow({
         <p className="text-xs text-slate-500">{t('staff.appointments.token')}</p>
         <p className="text-2xl font-bold text-brand-700">{a.tokenNo ?? '—'}</p>
         <p className="text-sm text-slate-700">
-          {showDate && <span className="block">{shortDate(a.date)}</span>}
+          {showDate && (
+            <span className="block">
+              {shortDate(a.date)}
+              {a.date.slice(0, 4) !== todayIso().slice(0, 4) && ` ${a.date.slice(0, 4)}`}
+            </span>
+          )}
           {time}
         </p>
       </div>
@@ -284,13 +293,22 @@ function AppointmentRow({
             {t('staff.appointments.openVisit')}
           </Link>
         )}
-        {buttons
-          .filter((b) => a.actions[b.kind] && !(visitLink && b.kind === 'complete'))
-          .map((b) => (
-            <Button key={b.kind} variant={b.variant} onClick={() => onAction(b.kind)}>
-              {t(`staff.appointments.${b.kind}`)}
-            </Button>
-          ))}
+        {onAction ? (
+          buttons
+            .filter((b) => a.actions[b.kind] && !(visitLink && b.kind === 'complete'))
+            .map((b) => (
+              <Button key={b.kind} variant={b.variant} onClick={() => onAction(b.kind)}>
+                {t(`staff.appointments.${b.kind}`)}
+              </Button>
+            ))
+        ) : (
+          <Link
+            to={`/staff/appointments?${new URLSearchParams({ date: a.date, branch: '', q: a.bookingRef })}`}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+          >
+            {t('staff.appointments.openInList')}
+          </Link>
+        )}
       </div>
     </li>
   )
