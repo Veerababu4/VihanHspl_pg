@@ -85,6 +85,31 @@ test('dialogs keep keyboard focus inside and give it back', async ({ page }) => 
   await expectFocusTrapped(page, page.getByRole('button', { name: 'Add doctor' }), 'new doctor')
 })
 
+test('a dialog stays the same dialog while its form loads', async ({ page }) => {
+  // Swapping a "Loading" dialog for a new one drops focus to the page for a frame: on the slow
+  // live host a Tab landed there. Hold the lists back and check the dialog is never replaced.
+  await login(page, 'itadmin')
+  for (const [path, button, api] of [
+    ['/staff/admin/users', 'Add user', '**/api/admin/doctors'],
+    ['/staff/admin/doctors', 'Add doctor', '**/api/admin/specialities'],
+  ]) {
+    await page.goto(path)
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    await page.route(api, async (route) => {
+      await held
+      await route.continue()
+    })
+    await page.getByRole('button', { name: button }).click()
+    await expect(page.getByRole('dialog').getByText('Loading')).toBeVisible()
+    const loading = await page.getByRole('dialog').elementHandle()
+    release()
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Save' })).toBeVisible()
+    expect(await loading!.evaluate((d) => d.isConnected), `${button}: same dialog after loading`).toBe(true)
+    await page.unroute(api)
+  }
+})
+
 test('doctor screens meet WCAG 2.1 AA (automated checks)', async ({ page }) => {
   await login(page, 'doctor006')
   await page.goto('/staff/queue')
