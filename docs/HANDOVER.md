@@ -1,14 +1,25 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-13, end of session (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev).
+*Updated 2026-10-14 (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 0. Resume here (next session)
 
-**Last shipped:** PR #3 https://github.com/Veerababu4/VihanHspl_pg/pull/3 (merged and live). Open: the E2E fix PR
-from branch `fix/e2e-a11y-captcha-idle` (see below).
+**Backend deploys were failing (2026-10-13/14).** Every Render deploy since PR #3 failed: Maven Central answers
+Render's shared build hosts with **429 Too Many Requests** (first for `spring-boot-configuration-processor`, then even
+for the wrapper's Maven download). Cloudflare deployed the frontend fine, so the live site was half-updated: the
+one-field search called `/api/public/appointments/find` on the old backend and got 404.
+- PR #5: the dependency layer also compiles a throwaway class (go-offline misses annotation processors); the real
+  build runs offline (`-o`).
+- Branch `fix/docker-build-maven-mirror`: Maven and all dependencies come from Google's Central mirror
+  (`MVNW_REPOURL` + `.mvn/docker-settings.xml`). Verified with `docker build --no-cache --add-host
+  repo.maven.apache.org:127.0.0.1` (Central unreachable): passes.
+- **After it deploys:** `POST {}` to `https://vihanhspl-pg.pages.dev/api/public/appointments/find` must answer 400,
+  not 404. Then check the live site and run the live E2E (§2).
+- Render deploy status without the dashboard: `gh api repos/Veerababu4/VihanHspl_pg/deployments`, then
+  `…/deployments/<id>/statuses`. Logs: the user downloads them from Render.
 
-What it does (both asked for by the user on 2026-10-13):
+**PR #3** https://github.com/Veerababu4/VihanHspl_pg/pull/3 (merged 2026-10-13), both asked for by the user:
 1. **Check my booking with one field.** The user chose "find with either, act with both":
    - `POST /api/public/appointments/find` takes exactly one of the booking ref or the mobile number. It needs the
      captcha and the lookup rate limit.
@@ -22,14 +33,9 @@ What it does (both asked for by the user on 2026-10-13):
 
 Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and typecheck clean, E2E **9/9**.
 
-**Fixed (2026-10-13, later):** E2E `a11y.spec.ts` timed out in `waitForLoadState('networkidle')` on the booking
+**Fixed (PR #4):** E2E `a11y.spec.ts` timed out in `waitForLoadState('networkidle')` on the booking
 details step every time: the Turnstile widget keeps the network busy. `expectAccessible` now waits for `load` and
 the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from 3.7 to 1.7 min.
-
-**PR #3 was merged by the user on 2026-10-13** (merge `1e91e81`, deployed), before the fix above was pushed; the
-fix went into its own PR (branch `fix/e2e-a11y-captcha-idle`). **Next:** check the live site (one-field "Check my
-booking", staff Log out bar), ideally the live E2E run (§2).
-
 **Also still open (user):** UptimeRobot (optional).
 
 ## 1. Two editions, two repos
@@ -131,6 +137,8 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   for memory. Run heavy things one at a time and stop the local backend when it's not needed.
 - PowerShell: `R` is a built-in alias (`Invoke-History`), so don't name helper functions `R`. In `gh … --jq`, quote
   expressions with spaces carefully, or use simple expressions such as `.ahead_by`.
+- Docker build: don't fetch from `repo.maven.apache.org` (429 on Render). Keep `MVNW_REPOURL` and
+  `-s .mvn/docker-settings.xml` on every `mvnw` call in `backend/Dockerfile`.
 - E2E: never wait for `networkidle` unbounded on a page with a Turnstile captcha; it may never come.
 - `gh` isn't on PATH in the PowerShell tool: call `& "C:\Program Files\GitHub CLI\gh.exe"`.
 - Feature branches: `git switch --no-track -c <branch> origin/main`. A plain `-c … origin/main` makes `main` the

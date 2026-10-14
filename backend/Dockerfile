@@ -5,17 +5,19 @@
 # ---- build ----
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
+# Maven Central answers shared build hosts (Render) with 429 Too Many Requests, so Maven itself
+# and all dependencies come from Google's official Central mirror (.mvn/docker-settings.xml).
+ENV MVNW_REPOURL=https://maven-central.storage-download.googleapis.com/maven2
 # Dependencies first, so code changes don't re-download them. go-offline misses the compiler's
-# annotation processors, so compile a throwaway class too. The real build then runs offline (-o):
-# Maven Central answers shared build hosts with 429 Too Many Requests now and then.
+# annotation processors, so compile a throwaway class too. The real build then runs offline (-o).
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
-RUN sh mvnw -q -B dependency:go-offline \
+RUN sh mvnw -q -B -s .mvn/docker-settings.xml dependency:go-offline \
  && mkdir -p src/main/java && echo 'class Warmup { public static void main(String[] a) {} }' > src/main/java/Warmup.java \
- && sh mvnw -q -B package -DskipTests \
+ && sh mvnw -q -B -s .mvn/docker-settings.xml package -DskipTests \
  && rm -rf src target
 COPY src src
-RUN sh mvnw -o -q -B package -DskipTests \
+RUN sh mvnw -o -q -B -s .mvn/docker-settings.xml package -DskipTests \
  && java -Djarmode=tools -jar target/hospital-*.jar extract --layers --launcher --destination /app
 
 # ---- run ----
