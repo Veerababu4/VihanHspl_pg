@@ -1,9 +1,16 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-14, evening (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PR #8 merged).
+*Updated 2026-10-14, night (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PRs #3–#10 merged).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 0. Resume here (next session)
+
+**Nothing open (2026-10-14, night).** `main` = `ba62c0e`: PRs #9 (handover) and #10 (E2E for Recent bookings) merged.
+The E2E suite has **12** tests: local **12/12**; live, the new test and the staff WCAG check 2/2 (the other 10
+passed live after PR #8). PR #10's test `recent bookings: search by name, mobile or booking ID; a doctor sees only
+their own` covers the manual check below: admin searches by booking ID (without dashes), mobile and part of a name,
+reception sees the general list, `doctor001` sees only their own bookings. It only reads, so it is safe live.
+Next: whatever the user asks; optional UptimeRobot (it would also stop the Render stalls that time out live E2E).
 
 **2026-10-14 (later): PR #8** https://github.com/Veerababu4/VihanHspl_pg/pull/8, branch `feature/recent-bookings-search`
 (`450f103` + merge of `main` `884627c`), **merged 2026-10-14 as `3a105a6`**. Asked for by the user:
@@ -19,11 +26,9 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
   frontend unit **71/71** (2 new in `Reception.test.tsx`), lint + typecheck clean. **E2E not run.** DESIGN §11.4 updated.
 - The merge with `main` (after PR #7) had one conflict, `lazyPages.tsx`: the new page uses `reloadForNewVersion` too.
 - **Deployed 2026-10-14** (Render deploy of `3a105a6`: success; Pages serves `RecentBookingsPage`). Live E2E
-  **11/11** (also confirms PR #7 live). No E2E opens `/staff/bookings` yet: add it to the staff list in
-  `e2e/a11y.spec.ts`. Still to do by hand: log in as admin, a receptionist and a doctor, open Recent bookings,
-  search a name, a mobile and a booking ref.
-- Stray untracked file `VeeraWork.claudesettings.local.json` in the project root (a copy of the Claude settings,
-  made when a Windows path lost its backslashes in Git Bash). Not committed; the user decides whether to delete it.
+  **11/11** (also confirms PR #7 live). E2E for `/staff/bookings` added by PR #10 (see above).
+- The stray `VeeraWork.claudesettings.local.json` (a copy of the Claude settings, made when a Windows path lost its
+  backslashes in Git Bash) was deleted 2026-10-14 with the user's OK: same content as the real file.
 
 **PR #7 merged** (`5b50534`) and live: the staff-screen fixes below (live E2E 11/11, see above).
 
@@ -34,7 +39,7 @@ real and are fixed on branch `fix/dialog-remount-and-scroll-regions` (PR #7), wi
 - `ScrollRegion` (`components/ui.tsx`): focusable wrapper for tables that scroll sideways (axe on the live Audit log).
 - `lib/reloadForNewVersion.ts`: every `lazy()` page import reloads once when its old file is gone.
 - Local: E2E **11/11**, unit **69/69** (one earlier run had 2 timeouts while the PC was busy; 3 reruns clean).
-- **After PR #7 deploys:** run the live E2E again (§2), expect 11/11.
+- Deployed; live E2E 11/11 confirmed it.
 
 **Backend deploys were failing (2026-10-13/14, fixed by PR #6).** Every Render deploy since PR #3 failed: Maven Central answers
 Render's shared build hosts with **429 Too Many Requests** (first for `spring-boot-configuration-processor`, then even
@@ -152,6 +157,10 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   by the user 2026-10-14): `Bash(git push -u origin feature/*)` (also `fix/*`, `docs/*`, `chore/*`) and
   `Bash(gh pr create *)`. Run them from the repo folder as plain commands (`cd` in a separate call, not `cd … &&`),
   or the rules don't match. Auto mode won't let Claude edit that file; the user edits it.
+- A `cd` to a folder **outside** the project (e.g. a git worktree in a temp/scratch folder) is reset to the project
+  folder, so the next command runs in the main checkout. On 2026-10-14 that renamed the user's checked-out branch and
+  pushed it as PR #10 (fixed the same day). Outside the project use `git -C "<path>" …` and `gh … --head <branch>`,
+  even if the push then asks for permission, and check `git -C <main> branch --show-current` afterwards.
 - **Never delete anything** (files, folders, DB rows, containers, volumes, temp files) without asking first.
 - When the session context gets near full, update this file at a clean point and hand off.
 
