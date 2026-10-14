@@ -1,9 +1,31 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-14 (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev).
+*Updated 2026-10-14, evening (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PR #8 merged).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 0. Resume here (next session)
+
+**2026-10-14 (later): PR #8** https://github.com/Veerababu4/VihanHspl_pg/pull/8, branch `feature/recent-bookings-search`
+(`450f103` + merge of `main` `884627c`), **merged 2026-10-14 as `3a105a6`**. Asked for by the user:
+- **Recent bookings** page `/staff/bookings` (staff menu, after Appointments) for IT Admin, reception and every
+  doctor (by role, so doctor001–020 and any doctor added later). A doctor sees only their own bookings, the same rule
+  as the rest of the portal; the user can ask to change that (one line in `ReceptionService.recent`).
+- `GET /api/staff/appointments/recent?q=`: the latest 20 bookings by `created_at` (when made, not the appointment
+  date). With `q`: name (contains, any case), mobile (3+ digits, contains) or booking ref (contains; a full ref
+  works without dashes) on **any date**, newest 20 matches; `%` and `_` are taken literally.
+- Rows reuse `AppointmentRow` (now exported) without action buttons; "Open in day list" goes to
+  `/staff/appointments?date=…&branch=&q=<ref>`. Dates in another year show the year.
+- Tests: backend **185/185** (new `ReceptionIntegrationTest.recentBookingsShowTheLatestTwentyAndSearchAnyDate`),
+  frontend unit **71/71** (2 new in `Reception.test.tsx`), lint + typecheck clean. **E2E not run.** DESIGN §11.4 updated.
+- The merge with `main` (after PR #7) had one conflict, `lazyPages.tsx`: the new page uses `reloadForNewVersion` too.
+- **Deployed 2026-10-14** (Render deploy of `3a105a6`: success; Pages serves `RecentBookingsPage`). Live E2E
+  **11/11** (also confirms PR #7 live). No E2E opens `/staff/bookings` yet: add it to the staff list in
+  `e2e/a11y.spec.ts`. Still to do by hand: log in as admin, a receptionist and a doctor, open Recent bookings,
+  search a name, a mobile and a booking ref.
+- Stray untracked file `VeeraWork.claudesettings.local.json` in the project root (a copy of the Claude settings,
+  made when a Windows path lost its backslashes in Git Bash). Not committed; the user decides whether to delete it.
+
+**PR #7 merged** (`5b50534`) and live: the staff-screen fixes below (live E2E 11/11, see above).
 
 **2026-10-14:** PR #6 deployed (backend live again, `/find` answers 400). Live E2E: **7/9**; the 2 failures were
 real and are fixed on branch `fix/dialog-remount-and-scroll-regions` (PR #7), with the user's report of
@@ -125,6 +147,11 @@ cd frontend; npm run e2e                       # needs the backend on :8080
   `git push` can't reach `main`), commit, `git push -u origin <branch>`, `gh pr create` (GitHub CLI, logged in as
   Veerababu4), send the link and wait. The user merges. If the user skips the PR, **ask before** merging or pushing to
   `main`: it deploys production. Manual database changes go into `deploy/sql/` in the same PR.
+- **Ask for a fresh OK right before every push**, even if an earlier message said "push".
+- Claude Code may push without a permission prompt only through `C:\Veera\Work\.claude\settings.local.json` (added
+  by the user 2026-10-14): `Bash(git push -u origin feature/*)` (also `fix/*`, `docs/*`, `chore/*`) and
+  `Bash(gh pr create *)`. Run them from the repo folder as plain commands (`cd` in a separate call, not `cd … &&`),
+  or the rules don't match. Auto mode won't let Claude edit that file; the user edits it.
 - **Never delete anything** (files, folders, DB rows, containers, volumes, temp files) without asking first.
 - When the session context gets near full, update this file at a clean point and hand off.
 
@@ -159,3 +186,9 @@ cd frontend; npm run e2e                       # needs the backend on :8080
 - E2E pages that wait for `networkidle` fail if a page loads Cloudflare Turnstile on arrival. That's why "Check my
   booking" shows the captcha only for one-field searches.
 - The local DB `vihan` has the app in schema `vihanhspl`; leftovers from before the schema change are in `public`.
+- Don't run the backend tests and Vitest at the same time on this laptop: the Testcontainers database failed to
+  start (Flyway error after 40 min) and Vitest couldn't start a worker. One after the other, both pass.
+- `ReceptionIntegrationTest`: every test's doctor is called "Dr. Reception Test", and the reports test finds rows by
+  that name on next Wednesday. New tests there should use `todayBooking` (today), not Wednesday counter bookings.
+- In Git Bash a Windows path like `C:\Veera\Work\.claude\x.json` loses its backslashes (it became a file named
+  `VeeraWork.claudesettings.local.json` in the current folder): use forward slashes.
