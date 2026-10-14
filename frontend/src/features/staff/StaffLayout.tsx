@@ -39,6 +39,7 @@ const NAV: NavItem[] = [
   { to: '/staff/dashboard', key: 'staff.nav.dashboard', roles: ['DOCTOR', 'RECEPTIONIST', 'IT_ADMIN'] },
   { to: '/staff/queue', key: 'staff.nav.queue', roles: ['DOCTOR'] },
   { to: '/staff/appointments', key: 'staff.nav.appointments', roles: ['DOCTOR', 'RECEPTIONIST', 'IT_ADMIN'] },
+  { to: '/staff/bookings', key: 'staff.nav.recentBookings', roles: ['DOCTOR', 'RECEPTIONIST', 'IT_ADMIN'] },
   { to: '/staff/patients', key: 'staff.nav.patients', roles: ['DOCTOR', 'RECEPTIONIST', 'IT_ADMIN'] },
   { to: '/staff/book', key: 'staff.nav.newBooking', roles: ['RECEPTIONIST', 'IT_ADMIN'] },
   { to: '/staff/reports', key: 'staff.nav.reports', roles: ['RECEPTIONIST', 'IT_ADMIN'] },

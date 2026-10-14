@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -39,6 +40,27 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 			  and (:status is null or a.status = :status)""")
 	List<Appointment> findForDay(@Param("date") LocalDate date, @Param("branchId") Long branchId,
 			@Param("doctorId") Long doctorId, @Param("status") Appointment.Status status);
+
+	/** Latest bookings first (when they were made, not the appointment date); null doctor = everyone's. */
+	@Query("""
+			select a from Appointment a
+			where (:doctorId is null or a.doctorId = :doctorId)
+			order by a.createdAt desc, a.id desc""")
+	List<Appointment> findRecent(@Param("doctorId") Long doctorId, Pageable page);
+
+	/**
+	 * Search on any date by name, mobile or booking reference, latest bookings first. The patterns are
+	 * {@code like} patterns with {@code \} as the escape; an empty pattern matches nothing (no column is empty).
+	 */
+	@Query("""
+			select a from Appointment a
+			where (:doctorId is null or a.doctorId = :doctorId)
+			  and (upper(a.patientName) like :name escape '\\'
+			       or a.bookingRef like :ref escape '\\'
+			       or a.patientMobile like :mobile escape '\\')
+			order by a.createdAt desc, a.id desc""")
+	List<Appointment> searchRecent(@Param("doctorId") Long doctorId, @Param("name") String name, @Param("ref") String ref,
+			@Param("mobile") String mobile, Pageable page);
 
 	/** FR-R7: upcoming bookings hit by leave / holiday that reception still has to phone about. */
 	@Query("""

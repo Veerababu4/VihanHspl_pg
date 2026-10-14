@@ -195,7 +195,8 @@
       "appointments": "Appointments",
       "reports": "Reports",
       "patients": "Patients",
-      "queue": "My queue"
+      "queue": "My queue",
+      "recentBookings": "Recent bookings"
     },
     "roles": {
       "DOCTOR": "Doctor",
@@ -507,7 +508,23 @@
       "rescheduleHint": "Any doctor, any free time. This does not use up the patient’s own online changes.",
       "confirmReschedule": "Move booking",
       "pickSlot": "Choose a new time",
-      "openVisit": "Open visit"
+      "openVisit": "Open visit",
+      "openInList": "Open in day list"
+    },
+    "recentBookings": {
+      "title": "Recent bookings",
+      "intro": "The latest 20 bookings, newest first. Search finds bookings on any date.",
+      "introDoctor": "Your latest 20 bookings, newest first. Search finds your bookings on any date.",
+      "search": "Search bookings",
+      "searchHint": "Name, mobile or booking ID",
+      "searchButton": "Search",
+      "showLatest": "Show latest",
+      "latest_one": "Latest {{count}} booking",
+      "latest_other": "Latest {{count}} bookings",
+      "results_one": "{{count}} booking matches “{{q}}”",
+      "results_other": "{{count}} bookings match “{{q}}” (newest first, up to 20)",
+      "empty": "No bookings yet.",
+      "noMatch": "No bookings match “{{q}}”."
     },
     "checkIn": {
       "title": "Check in {{name}}",

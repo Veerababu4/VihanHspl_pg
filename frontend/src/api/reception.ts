@@ -105,6 +105,13 @@ export const appointmentsUrl = (f: AppointmentFilters) =>
 export const useStaffAppointments = (f: AppointmentFilters) =>
   useQuery({ queryKey: ['staff-appointments', f], queryFn: () => apiGet<StaffAppointment[]>(appointmentsUrl(f)) })
 
+/** The latest 20 bookings (a doctor's own), or the latest 20 matching name, mobile or booking reference. */
+export const useRecentBookings = (q: string | undefined) =>
+  useQuery({
+    queryKey: ['staff-appointments', 'recent', q],
+    queryFn: () => apiGet<StaffAppointment[]>(`/staff/appointments/recent${query({ q })}`),
+  })
+
 export const useNeedsAction = (branch: string | undefined, enabled: boolean) =>
   useQuery({
     queryKey: ['needs-action', branch],

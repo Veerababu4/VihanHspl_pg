@@ -47,6 +47,12 @@ public class ReceptionController {
 		return reception.list(date, branch, doctor, status, q);
 	}
 
+	/** The latest bookings (any date), or the latest matching {@code q}: name, mobile or booking reference. */
+	@GetMapping("/recent")
+	public List<StaffAppointmentRow> recent(@RequestParam(required = false) String q) {
+		return reception.recent(q);
+	}
+
 	@GetMapping("/needs-action")
 	@PreAuthorize("hasAnyRole('RECEPTIONIST', 'IT_ADMIN')")
 	public List<StaffAppointmentRow> needsAction(@RequestParam(required = false) String branch) {

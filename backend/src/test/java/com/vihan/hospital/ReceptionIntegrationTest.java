@@ -383,6 +383,59 @@ class ReceptionIntegrationTest {
 			.andExpect(status().isBadRequest());
 	}
 
+	// ---- recent bookings ----
+
+	@Test
+	void recentBookingsShowTheLatestTwentyAndSearchAnyDate() throws Exception {
+		String mobile = newMobile();
+		long old = todayBooking(doctorId, mlg, "00:06", "Recent Oldtimer_x", mobile);
+		jdbc.update("UPDATE appointment SET created_at = created_at - INTERVAL '400 days' WHERE appointment_id = ?", old);
+		String oldRef = jdbc.queryForObject("SELECT booking_ref FROM appointment WHERE appointment_id = ?", String.class, old);
+		for (int i = 0; i < 20; i++) {   // 20 newer bookings push it out of the list
+			jdbc.update("""
+					INSERT INTO appointment (booking_ref, doctor_id, branch_id, appt_date, patient_name, patient_mobile,
+					  channel, status, consent_at)
+					VALUES (?, ?, ?, ?, 'Recent Filler', ?, 'PHONE', 'CANCELLED', LOCALTIMESTAMP)""",
+					BookingRefs.generate(today), doctorId, mlg, today.minusDays(1), newMobile());
+		}
+		long latest = todayBooking(doctorId, mlg, "00:07", "Recent Latest", newMobile());
+		// The app and the database clocks may differ by a moment; make "latest" clearly the newest.
+		jdbc.update("UPDATE appointment SET created_at = LOCALTIMESTAMP + INTERVAL '1 minute' WHERE appointment_id = ?", latest);
+
+		for (String auth : List.of(admin, desk)) {
+			mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, auth))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(20)))
+				.andExpect(jsonPath("$[0].id").value(latest))
+				.andExpect(jsonPath("$[?(@.id == %d)]".formatted(old), hasSize(0)));   // too old for the latest 20
+		}
+		// Search reaches past the latest 20: by name (any case), part of the mobile, or the reference.
+		for (String q : List.of("oldtimer_x", mobile.substring(3), oldRef.replace("-", "").toLowerCase(), oldRef.substring(4))) {
+			mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, desk).param("q", q))
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].id").value(old))
+				.andExpect(jsonPath("$[0].mobile").value(mobile));
+		}
+		mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, desk).param("q", "oldtimer%x"))
+			.andExpect(jsonPath("$", hasSize(0)));   // % is a character, not a wildcard
+
+		// A doctor sees only their own bookings, in the list and in the search.
+		long ownDoctor = id("SELECT doctor_id FROM app_user WHERE username = 'doctor001'");
+		long branch = id("SELECT MIN(branch_id) FROM doctor_branch WHERE doctor_id = ?", ownDoctor);
+		long own = todayBooking(ownDoctor, branch, "00:05", "Recent Ownpatient", newMobile());
+		jdbc.update("UPDATE appointment SET created_at = LOCALTIMESTAMP + INTERVAL '2 minutes' WHERE appointment_id = ?", own);
+		String doctor = TestLogin.bearer(mvc, "doctor001");
+		mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, doctor))
+			.andExpect(jsonPath("$[0].id").value(own))
+			.andExpect(jsonPath("$[?(@.doctorId != %d)]".formatted(ownDoctor), hasSize(0)));
+		mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, doctor).param("q", "oldtimer_x"))
+			.andExpect(jsonPath("$", hasSize(0)));
+		mvc.perform(get("/api/staff/appointments/recent").header(HttpHeaders.AUTHORIZATION, TestLogin.bearer(mvc, "doctor020"))
+				.param("q", "ownpatient"))
+			.andExpect(jsonPath("$", hasSize(0)));
+		mvc.perform(get("/api/staff/appointments/recent")).andExpect(status().isUnauthorized());
+	}
+
 	// ---- dashboard (FR-D1–D5) ----
 
 	@Test

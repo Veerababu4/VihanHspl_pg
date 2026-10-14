@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +56,8 @@ public class ReceptionService {
 	static final int NO_SHOW_DAYS = 30;
 	/** Keeps IN lists (one bind value each) to a moderate size. */
 	private static final int IN_CHUNK = 900;
+	/** How many bookings the "Recent bookings" list and its search show. */
+	static final int RECENT_LIMIT = 20;
 
 	private final AppointmentRepository appointments;
 	private final BookingService booking;
@@ -114,6 +118,36 @@ public class ReceptionService {
 				.toList();
 		}
 		return rows(found.stream().sorted(LIST_ORDER).toList(), who);
+	}
+
+	/**
+	 * The latest {@value #RECENT_LIMIT} bookings, newest first, or with {@code q} the latest that match
+	 * it by name, mobile or booking reference on any date. Doctors get only their own.
+	 */
+	@Transactional(readOnly = true)
+	public List<StaffAppointmentRow> recent(String q) {
+		Who who = who();
+		Long doctorId = null;
+		if (who.role() == Role.DOCTOR) {
+			if (who.doctorId() == null) {
+				return List.of();
+			}
+			doctorId = who.doctorId();
+		}
+		String query = q == null ? "" : q.strip();
+		Pageable page = PageRequest.of(0, RECENT_LIMIT);
+		if (query.isEmpty()) {
+			return rows(appointments.findRecent(doctorId, page), who);
+		}
+		String digits = query.replaceAll("\\D", "");
+		String ref = BookingRefs.normalize(query);
+		return rows(appointments.searchRecent(doctorId, contains(query.toUpperCase(Locale.ROOT)), contains(ref),
+				digits.length() >= 3 ? contains(digits) : "", page), who);
+	}
+
+	/** A {@code like} pattern for "contains", with the user's {@code %}, {@code _} and {@code \} taken literally. */
+	private static String contains(String s) {
+		return "%" + s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
 	}
 
 	/** FR-R7: upcoming bookings hit by leave / holiday, so reception can phone the patients. */
