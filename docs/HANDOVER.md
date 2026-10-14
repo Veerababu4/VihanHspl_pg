@@ -18,12 +18,14 @@ Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `
 - Tests: backend **185/185** (new `ReceptionIntegrationTest.recentBookingsShowTheLatestTwentyAndSearchAnyDate`),
   frontend unit **71/71** (2 new in `Reception.test.tsx`), lint + typecheck clean. **E2E not run.** DESIGN §11.4 updated.
 - The merge with `main` (after PR #7) had one conflict, `lazyPages.tsx`: the new page uses `reloadForNewVersion` too.
-- **After PR #8 deploys:** log in as admin, a receptionist and a doctor, open Recent bookings, search a name, a
-  mobile and a booking ref; then run the live E2E (§2).
+- **Deployed 2026-10-14** (Render deploy of `3a105a6`: success; Pages serves `RecentBookingsPage`). Live E2E
+  **11/11** (also confirms PR #7 live). No E2E opens `/staff/bookings` yet: add it to the staff list in
+  `e2e/a11y.spec.ts`. Still to do by hand: log in as admin, a receptionist and a doctor, open Recent bookings,
+  search a name, a mobile and a booking ref.
 - Stray untracked file `VeeraWork.claudesettings.local.json` in the project root (a copy of the Claude settings,
   made when a Windows path lost its backslashes in Git Bash). Not committed; the user decides whether to delete it.
 
-**PR #7 merged** (`5b50534`): the staff-screen fixes below. Run the live E2E again after it deploys, expect 11/11.
+**PR #7 merged** (`5b50534`) and live: the staff-screen fixes below (live E2E 11/11, see above).
 
 **2026-10-14:** PR #6 deployed (backend live again, `/find` answers 400). Live E2E: **7/9**; the 2 failures were
 real and are fixed on branch `fix/dialog-remount-and-scroll-regions` (PR #7), with the user's report of
