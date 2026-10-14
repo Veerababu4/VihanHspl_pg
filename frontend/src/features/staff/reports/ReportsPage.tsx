@@ -6,7 +6,7 @@ import { useBranches } from '../../../api/public'
 import { PERIOD_REPORTS, REPORT_TYPES, reportUrl, useReport, type ReportParams, type ReportType } from '../../../api/reception'
 import { useAuth } from '../../../auth/session'
 import { Seo } from '../../../components/Seo'
-import { Alert, Button, Field, inputClass, PageHeader } from '../../../components/ui'
+import { Alert, Button, Field, inputClass, PageHeader, ScrollRegion } from '../../../components/ui'
 import { addDays, todayIso } from '../../../lib/dates'
 
 /**
@@ -119,7 +119,7 @@ export function ReportsPage() {
             <p className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">{t('staff.reports.empty')}</p>
           ) : (
             <>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white print:overflow-visible print:border-0">
+              <ScrollRegion label={r.title} className="rounded-xl border border-slate-200 bg-white print:overflow-visible print:border-0">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-left text-slate-600">
                     <tr>
@@ -140,7 +140,7 @@ export function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
               <p className="mt-2 text-sm text-slate-500">{t('staff.reports.rows', { count: r.rows.length })}</p>
             </>
           )}

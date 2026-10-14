@@ -18,7 +18,7 @@ import {
 } from '../../../api/admin'
 import type { Role } from '../../../auth/session'
 import { Seo } from '../../../components/Seo'
-import { Alert, Badge, Button, Field, inputClass, Modal, PageHeader } from '../../../components/ui'
+import { Alert, Badge, Button, Field, inputClass, Modal, PageHeader, ScrollRegion } from '../../../components/ui'
 import { applyServerErrors } from '../../../lib/forms'
 
 const ROLES: Role[] = ['RECEPTIONIST', 'DOCTOR', 'IT_ADMIN']
@@ -45,7 +45,7 @@ export function UsersPage() {
       {isPending && <p className="text-slate-500">{t('staff.common.loading')}</p>}
       {isError && <Alert>{t('staff.common.loadError')}</Alert>}
       {users && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <ScrollRegion label={t('staff.users.title')} className="rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
               <tr>
@@ -90,7 +90,7 @@ export function UsersPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
       {editing && (
         <UserForm
@@ -131,19 +131,21 @@ interface UserFormProps {
 /**
  * Waits for the doctor and branch lists before showing the form: a <select> mounted before its
  * options exist would silently show (and submit) the first option instead of the saved value.
+ * One dialog for both states: swapping dialogs would move keyboard focus out and back.
  */
 function UserForm(props: UserFormProps) {
   const { t } = useTranslation()
   const { data: doctors } = useAdminDoctors()
   const { data: branches } = useAdminBranches()
-  if (!doctors || !branches) {
-    return (
-      <Modal title={props.user ? t('staff.users.editTitle') : t('staff.users.addTitle')} onClose={props.onClose}>
+  return (
+    <Modal title={props.user ? t('staff.users.editTitle') : t('staff.users.addTitle')} onClose={props.onClose}>
+      {doctors && branches ? (
+        <UserFormBody {...props} doctors={doctors} branches={branches} />
+      ) : (
         <p className="text-slate-500">{t('staff.common.loading')}</p>
-      </Modal>
-    )
-  }
-  return <UserFormBody {...props} doctors={doctors} branches={branches} />
+      )}
+    </Modal>
+  )
 }
 
 function UserFormBody({
@@ -205,82 +207,80 @@ function UserFormBody({
   })
 
   return (
-    <Modal title={isNew ? t('staff.users.addTitle') : t('staff.users.editTitle')} onClose={onClose}>
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
-        {message && <Alert>{message}</Alert>}
-        {isNew ? (
-          <Field label={t('staff.users.username')} error={errors.username?.message} hint={t('staff.users.usernameHint')}>
-            {(a) => <input {...a} {...form.register('username')} autoCapitalize="none" className={inputClass} />}
-          </Field>
-        ) : (
-          <p className="text-sm">
-            {t('staff.users.username')}: <span className="font-mono">{user.username}</span>
-          </p>
+    <form onSubmit={onSubmit} noValidate className="space-y-4">
+      {message && <Alert>{message}</Alert>}
+      {isNew ? (
+        <Field label={t('staff.users.username')} error={errors.username?.message} hint={t('staff.users.usernameHint')}>
+          {(a) => <input {...a} {...form.register('username')} autoCapitalize="none" className={inputClass} />}
+        </Field>
+      ) : (
+        <p className="text-sm">
+          {t('staff.users.username')}: <span className="font-mono">{user.username}</span>
+        </p>
+      )}
+      <Field label={t('staff.users.role')} error={errors.role?.message}>
+        {(a) => (
+          <select {...a} {...form.register('role')} className={inputClass}>
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {t(`staff.roles.${r}`)}
+              </option>
+            ))}
+          </select>
         )}
-        <Field label={t('staff.users.role')} error={errors.role?.message}>
+      </Field>
+      {role === 'DOCTOR' && (
+        <Field label={t('staff.users.doctor')} error={errors.doctorId?.message}>
           {(a) => (
-            <select {...a} {...form.register('role')} className={inputClass}>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {t(`staff.roles.${r}`)}
+            <select {...a} {...form.register('doctorId', { onChange: (e) => onDoctorChange(e.target.value) })} className={inputClass}>
+              <option value="">{t('staff.users.chooseDoctor')}</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.fullName} — {d.specialityName}
                 </option>
               ))}
             </select>
           )}
         </Field>
-        {role === 'DOCTOR' && (
-          <Field label={t('staff.users.doctor')} error={errors.doctorId?.message}>
-            {(a) => (
-              <select {...a} {...form.register('doctorId', { onChange: (e) => onDoctorChange(e.target.value) })} className={inputClass}>
-                <option value="">{t('staff.users.chooseDoctor')}</option>
-                {doctors.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.fullName} — {d.specialityName}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
+      )}
+      <Field label={t('staff.users.fullName')} error={errors.fullName?.message}>
+        {(a) => <input {...a} {...form.register('fullName')} className={inputClass} />}
+      </Field>
+      <Field label={t('staff.users.homeBranch')} error={errors.homeBranchId?.message}>
+        {(a) => (
+          <select {...a} {...form.register('homeBranchId')} className={inputClass}>
+            <option value="">{t('staff.users.chooseBranch')}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.city}
+              </option>
+            ))}
+          </select>
         )}
-        <Field label={t('staff.users.fullName')} error={errors.fullName?.message}>
-          {(a) => <input {...a} {...form.register('fullName')} className={inputClass} />}
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t('staff.users.mobile')} error={errors.mobile?.message}>
+          {(a) => <input {...a} {...form.register('mobile')} inputMode="numeric" className={inputClass} />}
         </Field>
-        <Field label={t('staff.users.homeBranch')} error={errors.homeBranchId?.message}>
-          {(a) => (
-            <select {...a} {...form.register('homeBranchId')} className={inputClass}>
-              <option value="">{t('staff.users.chooseBranch')}</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.city}
-                </option>
-              ))}
-            </select>
-          )}
+        <Field label={t('staff.users.email')} error={errors.email?.message}>
+          {(a) => <input {...a} {...form.register('email')} type="email" className={inputClass} />}
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t('staff.users.mobile')} error={errors.mobile?.message}>
-            {(a) => <input {...a} {...form.register('mobile')} inputMode="numeric" className={inputClass} />}
-          </Field>
-          <Field label={t('staff.users.email')} error={errors.email?.message}>
-            {(a) => <input {...a} {...form.register('email')} type="email" className={inputClass} />}
-          </Field>
-        </div>
-        {!isNew && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...form.register('active')} className="h-4 w-4" />
-            {t('staff.common.active')} <span className="text-slate-500">— {t('staff.users.activeHint')}</span>
-          </label>
-        )}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" onClick={onClose}>
-            {t('staff.common.cancel')}
-          </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? t('staff.common.saving') : t('staff.common.save')}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      </div>
+      {!isNew && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" {...form.register('active')} className="h-4 w-4" />
+          {t('staff.common.active')} <span className="text-slate-500">— {t('staff.users.activeHint')}</span>
+        </label>
+      )}
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="secondary" onClick={onClose}>
+          {t('staff.common.cancel')}
+        </Button>
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          {form.formState.isSubmitting ? t('staff.common.saving') : t('staff.common.save')}
+        </Button>
+      </div>
+    </form>
   )
 }
 

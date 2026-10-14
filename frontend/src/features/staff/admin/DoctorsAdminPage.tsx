@@ -98,31 +98,40 @@ interface DoctorFormProps {
 /**
  * Waits for the speciality and branch lists before showing the form: a <select> mounted before
  * its options exist would silently show (and submit) the first option instead of the saved value.
+ * One dialog for both states: swapping dialogs would move keyboard focus out and back.
  */
 function DoctorForm(props: DoctorFormProps) {
   const { t } = useTranslation()
   const { data: specialities } = useAdminSpecialities()
   const { data: branches } = useAdminBranches()
-  if (!specialities || !branches) {
-    return (
-      <Modal title={props.doctor ? t('staff.doctors.editTitle') : t('staff.doctors.addTitle')} onClose={props.onClose} wide>
+  const [current, setCurrent] = useState(props.doctor)
+  return (
+    <Modal title={current ? t('staff.doctors.editTitle') : t('staff.doctors.addTitle')} onClose={props.onClose} wide>
+      {specialities && branches ? (
+        <DoctorFormBody {...props} current={current} setCurrent={setCurrent} specialities={specialities} branches={branches} />
+      ) : (
         <p className="text-slate-500">{t('staff.common.loading')}</p>
-      </Modal>
-    )
-  }
-  return <DoctorFormBody {...props} specialities={specialities} branches={branches} />
+      )}
+    </Modal>
+  )
 }
 
 function DoctorFormBody({
   doctor,
   onClose,
+  current,
+  setCurrent,
   specialities,
   branches,
-}: DoctorFormProps & { specialities: AdminSpeciality[]; branches: AdminBranch[] }) {
+}: DoctorFormProps & {
+  current: AdminDoctor | null
+  setCurrent: (d: AdminDoctor) => void
+  specialities: AdminSpeciality[]
+  branches: AdminBranch[]
+}) {
   const { t } = useTranslation()
   const save = useSaveDoctor()
   const [message, setMessage] = useState<string | null>(null)
-  const [current, setCurrent] = useState(doctor)
   const isNew = current === null
 
   const form = useForm<FormInput, unknown, FormOutput>({
@@ -170,7 +179,7 @@ function DoctorFormBody({
   })
 
   return (
-    <Modal title={isNew ? t('staff.doctors.addTitle') : t('staff.doctors.editTitle')} onClose={onClose} wide>
+    <>
       {current && <PhotoEditor doctor={current} onChange={setCurrent} />}
       <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
         {message && (
@@ -255,7 +264,7 @@ function DoctorFormBody({
           </Button>
         </div>
       </form>
-    </Modal>
+    </>
   )
 }
 

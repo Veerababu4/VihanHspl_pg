@@ -19,6 +19,23 @@ async function completedAtMiryalaguda(page: Page): Promise<number> {
   return Number(await completed.textContent())
 }
 
+test('a tab opened before a deploy reloads instead of failing', async ({ page, browserErrors }) => {
+  await login(page, 'itadmin')
+  // After a deploy the old page files are gone, and Cloudflare answers with the HTML page instead.
+  let faked = false
+  await page.route('**/assets/SchedulePage-*.js', async (route) => {
+    if (faked) return route.continue()
+    faked = true
+    await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Vihan</title>' })
+  })
+  await page.getByRole('navigation', { name: 'Menu' }).getByRole('link', { name: 'Schedule' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: /^Schedule/ })).toBeVisible()
+  expect(faked, 'the old page file was asked for').toBe(true)
+  // The failed load is reported before the reload: expected here, not a real browser error.
+  const others = browserErrors.filter((e) => !/SchedulePage|module script|dynamically imported module/i.test(e))
+  browserErrors.splice(0, browserErrors.length, ...others)
+})
+
 test('walk-in at reception → doctor completes the visit → the dashboard counts it', async ({ page, browser }) => {
   await login(page, 'reception.mlg')
   const before = await completedAtMiryalaguda(page)
