@@ -88,6 +88,18 @@ export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'good
   return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${styles[tone]}`}>{children}</span>
 }
 
+/**
+ * Wrapper for a table that scrolls sideways when it doesn't fit. Focusable, so keyboard users can
+ * scroll it with the arrow keys (WCAG 2.1.1; axe: scrollable-region-focusable).
+ */
+export function ScrollRegion({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) {
+  return (
+    <div role="region" aria-label={label} tabIndex={0} className={`overflow-x-auto ${className}`}>
+      {children}
+    </div>
+  )
+}
+
 /** Accessible modal dialog: focus moves in and stays inside, Escape closes, focus returns afterwards. */
 export function Modal({
   title,

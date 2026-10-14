@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useAdminUsers, useAuditLog, type AuditFilters } from '../../../api/admin'
 import { Seo } from '../../../components/Seo'
-import { Alert, Button, inputClass, PageHeader } from '../../../components/ui'
+import { Alert, Button, inputClass, PageHeader, ScrollRegion } from '../../../components/ui'
 
 // Mirrors the backend AuditAction enum.
 const ACTIONS = [
@@ -72,7 +72,7 @@ export function AuditPage() {
       {data && data.items.length === 0 && <p className="text-slate-600">{t('staff.audit.empty')}</p>}
       {data && data.items.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <ScrollRegion label={t('staff.audit.title')} className="rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
                 <tr>
@@ -97,7 +97,7 @@ export function AuditPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span>{t('staff.audit.page', { page: data.page + 1, total: Math.max(1, data.totalPages) })}</span>
             <div className="flex gap-2">

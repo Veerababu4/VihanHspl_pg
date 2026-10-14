@@ -7,7 +7,7 @@ import { useBranches } from '../../../api/public'
 import { dashboardExportUrl, useDashboard, type Counts } from '../../../api/reception'
 import { useAuth } from '../../../auth/session'
 import { Seo } from '../../../components/Seo'
-import { Alert, Button, Field, inputClass, PageHeader } from '../../../components/ui'
+import { Alert, Button, Field, inputClass, PageHeader, ScrollRegion } from '../../../components/ui'
 import { todayIso } from '../../../lib/dates'
 
 const COLUMNS: (keyof Counts)[] = ['total', 'booked', 'checkedIn', 'completed', 'cancelled', 'noShow', 'openSlots']
@@ -105,7 +105,7 @@ export function DashboardPage() {
             {s.doctors.length === 0 ? (
               <p className="rounded-xl border border-slate-200 bg-white p-6 text-slate-600">{t('staff.dashboard.noData')}</p>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <ScrollRegion label={t('staff.dashboard.perDoctor')} className="rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-left text-slate-600">
                     <tr>
@@ -138,7 +138,7 @@ export function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             )}
           </section>
         </>
