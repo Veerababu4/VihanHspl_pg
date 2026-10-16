@@ -1,16 +1,35 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-14, night (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PRs #3–#10 merged).
+*Updated 2026-10-16 (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PRs #3–#11 merged; UptimeRobot on).
 Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 0. Resume here (next session)
 
-**Nothing open (2026-10-14, night).** `main` = `ba62c0e`: PRs #9 (handover) and #10 (E2E for Recent bookings) merged.
+**2026-10-16: UptimeRobot keep-awake is on** (set up by the user, free plan, user's own account).
+- Why: measured cold start 2026-10-16 16:32 IST: page HTML 0.46 s (Cloudflare), but the first `/api` call took
+  **123 s**, almost all of it Render waking up (container + Spring Boot + Flyway, which also wakes Neon). Warm, the
+  whole chain Browser → Cloudflare → Render → Neon answers in ~0.3–0.4 s (each hop ~0.1 s).
+- Monitors (HTTP(s), every 5 min, alerts by email):
+  1. `https://vihanhspl-pg.pages.dev`: the static site on Cloudflare (an "is the website up" alert; doesn't wake Render).
+  2. `https://vihanhspl-pg.pages.dev/api/public/app-info`: **keeps Render awake** (5 min < Render's 15 min sleep).
+     `app-info` doesn't touch the database, so Neon still sleeps (first DB call after 5 min idle: ~1 s extra).
+     Don't ping Render's `/actuator/health` instead: it runs a DB check and would keep Neon awake 24/7.
+- Render free: one service awake 24/7 uses ~744 of the 750 free instance-hours a month; don't add a second free
+  Render service to that account.
+- API key: `UPTIMEROBOT_API_KEY` (Main API key) in `deploy/cloud-secrets.env` (git-ignored); read it from the file,
+  never print it. `POST https://api.uptimerobot.com/v2/getMonitors` with `api_key=…` works; `getAccountDetails`
+  answers `not_authorized`.
+- UptimeRobot's free-plan terms on commercial use are unclear (sources disagree): check them before the real
+  hospital relies on it.
+- To check: after > 15 min with no visitors, the first `/api` call should take < ~1 s, not ~2 min.
+
+**2026-10-14, night: nothing open.** `main` = `ba62c0e`: PRs #9 (handover) and #10 (E2E for Recent bookings) merged.
 The E2E suite has **12** tests: local **12/12**; live, the new test and the staff WCAG check 2/2 (the other 10
 passed live after PR #8). PR #10's test `recent bookings: search by name, mobile or booking ID; a doctor sees only
 their own` covers the manual check below: admin searches by booking ID (without dashes), mobile and part of a name,
 reception sees the general list, `doctor001` sees only their own bookings. It only reads, so it is safe live.
-Next: whatever the user asks; optional UptimeRobot (it would also stop the Render stalls that time out live E2E).
+Next: whatever the user asks (UptimeRobot done 2026-10-16, see above; it should also stop the Render stalls that
+time out live E2E).
 
 **2026-10-14 (later): PR #8** https://github.com/Veerababu4/VihanHspl_pg/pull/8, branch `feature/recent-bookings-search`
 (`450f103` + merge of `main` `884627c`), **merged 2026-10-14 as `3a105a6`**. Asked for by the user:
@@ -72,7 +91,7 @@ Tests on the branch: backend **183/183**, frontend unit **69/69**, lint and type
 **Fixed (PR #4):** E2E `a11y.spec.ts` timed out in `waitForLoadState('networkidle')` on the booking
 details step every time: the Turnstile widget keeps the network busy. `expectAccessible` now waits for `load` and
 the first `h1`, then gives `networkidle` at most 5 s. The a11y spec dropped from 3.7 to 1.7 min.
-**Also still open (user):** UptimeRobot (optional).
+UptimeRobot: done 2026-10-16 (§0).
 
 ## 1. Two editions, two repos
 
@@ -108,8 +127,8 @@ polls, mojibake "â€”" on the Schedule page.
 
 - All secrets and the Neon connection are in `deploy/cloud-secrets.env` (git-ignored). The user must not paste them into chat; read them from the file without printing.
 - Live checks passed: pages + headers, `/api` via the proxy, E2E **9/9** against the live site (`E2E_BASE_URL=https://vihanhspl-pg.pages.dev`, `E2E_PASSWORD` = cloud `DEV_SAMPLE_PASSWORD`), real visitor IP recorded (IPv6 is stored in brackets: cosmetic).
-- `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` is set in Render (done 2026-10-13). UptimeRobot (user, optional) keep-awake: `/api/public/app-info` every 5 min (answered without the database, so Neon still sleeps).
-- Free plan: Render sleeps after 15 min idle (first visit ~1 min). Every push to `main` of `VihanHspl_pg` redeploys both.
+- `CORS_ALLOWED_ORIGINS=https://vihanhspl-pg.pages.dev` is set in Render (done 2026-10-13). UptimeRobot keep-awake (on since 2026-10-16, §0): `/api/public/app-info` every 5 min (answered without the database, so Neon still sleeps).
+- Free plan: Render sleeps after 15 min idle (first visit ~1–2 min; 123 s measured 2026-10-16); the UptimeRobot ping prevents that. Every push to `main` of `VihanHspl_pg` redeploys both.
 
 **Own schema (2026-10-13):** the tables live in schema **`vihanhspl`**, owned by login `vihanhspl` (like `VIHAN_APP` on
 Oracle), not in `public`. Code: `DB_SCHEMA` (`application.yml`, `render.yaml`). The live data was moved by hand:
