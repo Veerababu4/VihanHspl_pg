@@ -1,29 +1,42 @@
 # Handover — Vihan Multi Speciality Hospital, Phase 1
 
-*Updated 2026-10-16 (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PRs #3–#11 merged; UptimeRobot on).
-Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
+*Updated 2026-10-16, evening (PostgreSQL edition **live** at https://vihanhspl-pg.pages.dev; PRs #3–#12 merged;
+UptimeRobot on). Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy/README.md` and `README.md`.*
 
 ## 0. Resume here (next session)
+
+**2026-10-16, evening: nothing open.** `main` = `3c52f59` (PR #12, the UptimeRobot handover below, merged).
+Since PR #12:
+- The user deleted the plain-site monitor: **only one monitor now**, the `app-info` keep-awake one (id `804299976`).
+- The API key in `cloud-secrets.env` is now the **read-only** key (starts `ur`). Reading works; writes such as
+  `newMonitor` answer `not_authorized` (checked). Creating or changing monitors: the user does it in the UptimeRobot
+  website, or swaps in a Main key temporarily.
+- Keep-awake check: at 20:37 IST, after a long gap without my requests, `app-info` answered in 0.58 s and
+  `branches` in 0.28 s (no cold start). Uptime 99.65% (1 day) / 99.95% (7 days) / 99.99% (30 days).
+- One UptimeRobot DOWN event: 2026-10-16 16:54:15 IST, **502 Bad Gateway** for 306 s, then UP at 16:59:21. Cause
+  unknown (probably Render restarting or waking). If DOWN events repeat, look at Render's events/logs.
+- The user is learning APIs: `C:\Veera\Work\dummy_API_learning.sh` (outside the repo, never commit it) calls our
+  public API, UptimeRobot `getMonitors`, prints request/response JSON and parses it with Python, Node and grep.
 
 **2026-10-16: UptimeRobot keep-awake is on** (set up by the user, free plan, user's own account).
 - Why: measured cold start 2026-10-16 16:32 IST: page HTML 0.46 s (Cloudflare), but the first `/api` call took
   **123 s**, almost all of it Render waking up (container + Spring Boot + Flyway, which also wakes Neon). Warm, the
   whole chain Browser → Cloudflare → Render → Neon answers in ~0.3–0.4 s (each hop ~0.1 s).
-- Monitors (HTTP(s), every 5 min, alerts by email):
-  1. `https://vihanhspl-pg.pages.dev`: the static site on Cloudflare (an "is the website up" alert; doesn't wake Render).
+- Monitors (HTTP(s), every 5 min, alerts by email; the first one was later deleted by the user, see above):
+  1. ~~`https://vihanhspl-pg.pages.dev`~~: the static site on Cloudflare (doesn't wake Render).
   2. `https://vihanhspl-pg.pages.dev/api/public/app-info`: **keeps Render awake** (5 min < Render's 15 min sleep).
      `app-info` doesn't touch the database, so Neon still sleeps (first DB call after 5 min idle: ~1 s extra).
      Don't ping Render's `/actuator/health` instead: it runs a DB check and would keep Neon awake 24/7.
 - Render free: one service awake 24/7 uses ~744 of the 750 free instance-hours a month; don't add a second free
   Render service to that account.
-- API key: `UPTIMEROBOT_API_KEY` (Main API key) in `deploy/cloud-secrets.env` (git-ignored); read it from the file,
+- API key: `UPTIMEROBOT_API_KEY` (now the read-only key, see above) in `deploy/cloud-secrets.env` (git-ignored); read it from the file,
   never print it. `POST https://api.uptimerobot.com/v2/getMonitors` with `api_key=…` works; `getAccountDetails`
   answers `not_authorized`.
 - UptimeRobot's free-plan terms on commercial use are unclear (sources disagree): check them before the real
   hospital relies on it.
 - To check: after > 15 min with no visitors, the first `/api` call should take < ~1 s, not ~2 min.
 
-**2026-10-14, night: nothing open.** `main` = `ba62c0e`: PRs #9 (handover) and #10 (E2E for Recent bookings) merged.
+**2026-10-14, night:** `main` = `ba62c0e`: PRs #9 (handover) and #10 (E2E for Recent bookings) merged.
 The E2E suite has **12** tests: local **12/12**; live, the new test and the staff WCAG check 2/2 (the other 10
 passed live after PR #8). PR #10's test `recent bookings: search by name, mobile or booking ID; a doctor sees only
 their own` covers the manual check below: admin searches by booking ID (without dashes), mobile and part of a name,
