@@ -80,6 +80,25 @@ it in `CORS_ALLOWED_ORIGINS`.
   the first visit after 15 idle minutes waited **123 s** (measured). It uses ~744 of Render's 750 free hours/month, so
   one free service only. Don't ping Render's `/actuator/health`: it checks the database and keeps Neon awake 24/7.
 
+## 5. Confirmation email (optional, free)
+
+Until this is done the site stays on `EMAIL_PROVIDER=log`: no email form, nothing sent. The
+"Share on WhatsApp" button needs no setup.
+
+1. <https://www.brevo.com> → free account (about 300 emails a day).
+2. In Brevo's settings, **add a sender**: the address the emails come from (e.g. a new Gmail for
+   the project); confirm the code Brevo emails to it.
+3. In Brevo's settings (**SMTP & API**), **generate an API key** (not an SMTP key). Put it in `deploy/cloud-secrets.env` as
+   `BREVO_API_KEY=…` (git-ignored; never paste it into chat).
+4. Render → `vihan-backend` → **Environment**: `EMAIL_PROVIDER=brevo`, `EMAIL_FORM_ENABLED=true`,
+   `BREVO_API_KEY` (from the file), `MAIL_FROM` (the sender from step 2) → **Save** (redeploys).
+   A missing key or sender stops the start with a clear message in the Render log.
+5. Book on the live site and email the confirmation to yourself. It starts with a **TEST / not a
+   real hospital** banner while `EMAIL_TEST_BANNER=true` (`render.yaml`).
+
+Without the hospital's own domain (SPF / DKIM records) Gmail and Outlook may file the emails as
+spam; the page tells patients to check there. To stop sending: `EMAIL_FORM_ENABLED=false`.
+
 ## Real data?
 
 Not on this setup as it stands: `SAMPLE_DATA=true` fills it with fictional doctors, patients and

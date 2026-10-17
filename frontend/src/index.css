@@ -19,3 +19,32 @@
 body {
   @apply bg-slate-50 text-slate-800 antialiased;
 }
+
+/* "Test site, not a real hospital" line (TestSiteMarquee): two copies of the text slide left by one
+   copy's width, so the loop is seamless. Pauses on hover / focus / Pause button; still with reduced motion. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  animation: marquee-scroll 30s linear infinite;
+}
+.marquee:hover .marquee-track,
+.marquee-paused .marquee-track,
+.marquee:has(+ .marquee-toggle:focus-visible) .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+    width: auto;
+    white-space: normal;
+  }
+  .marquee-track > [aria-hidden="true"],
+  .marquee-toggle {
+    display: none;
+  }
+}

@@ -20,3 +20,5 @@ logging:
 
 app:
   sample-data: true
+  email:
+    form-enabled: true                # provider stays "log": the email is only written to the log

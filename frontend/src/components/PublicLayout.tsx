@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, ScrollRestoration } from 'react-router'
 
 import { useAppInfo, useBranches } from '../api/public'
 import { EmergencyButton } from './EmergencyButton'
+import { TestSiteMarquee } from './TestSiteMarquee'
 
 const NAV_LINKS = [
   { to: '/doctors', key: 'nav.doctors' },
@@ -25,6 +26,7 @@ export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollRestoration />
+      {appInfo?.testNotice && <TestSiteMarquee />}
       {appInfo?.sampleData && (
         <div role="status" className="bg-amber-400 px-4 py-1 text-center text-sm font-semibold text-amber-950 print:hidden">
           {t('banner.sampleData')}

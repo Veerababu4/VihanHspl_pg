@@ -64,6 +64,7 @@ public class BookingService {
 	private final Clock clock;
 	private final AppProperties.Booking rules;
 	private final PatientService patients;
+	private final int maxEmailsPerBooking;
 
 	public BookingService(AppointmentRepository appointments, SlotRepository slots, DoctorRepository doctors,
 			BranchRepository branches, SlotReconciler reconciler, AuditService audit, Notifications notifications,
@@ -78,6 +79,7 @@ public class BookingService {
 		this.clock = clock;
 		this.rules = props.booking();
 		this.patients = patients;
+		this.maxEmailsPerBooking = props.email().maxPerBooking();
 	}
 
 	// ---- booking ----
@@ -174,6 +176,28 @@ public class BookingService {
 		AppointmentView view = view(a, slot);
 		notifications.afterCommit(message(Event.CANCELLED, a, view));
 		return view;
+	}
+
+	/**
+	 * Records that the patient asked for the confirmation by email, and returns what to put in it.
+	 * The email itself is sent by the caller after this commits, so a slow provider never holds a
+	 * database connection. Only upcoming bookings, at most {@code app.email.max-per-booking} times.
+	 */
+	@Transactional
+	public AppointmentView recordConfirmationEmail(String bookingRef, String mobile, String email) {
+		Appointment a = find(bookingRef, mobile);
+		if (a.getStatus() != Appointment.Status.BOOKED || a.getStartAt() == null
+				|| !a.getStartAt().isAfter(LocalDateTime.now(clock))) {
+			throw new ConflictException("NOT_EMAILABLE", "A confirmation can only be emailed for an upcoming booking");
+		}
+		if (a.getEmailSentCount() >= maxEmailsPerBooking) {
+			throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "EMAIL_LIMIT", "This booking's confirmation has already been emailed "
+					+ maxEmailsPerBooking + " times. Please print or save this page instead.");
+		}
+		String address = email.strip();
+		a.recordConfirmationEmail(address);
+		audit.record(AuditAction.APPOINTMENT_EMAIL_REQUESTED, "APPOINTMENT", a.getId(), "to " + Masking.email(address));
+		return view(a, a.getSlotId() == null ? null : slots.findById(a.getSlotId()).orElse(null));
 	}
 
 	/** Same doctor, any of the doctor's branches; same booking reference, new token (FR-B3a). */

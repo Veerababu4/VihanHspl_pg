@@ -63,7 +63,7 @@ class BookingUnitTest {
 	@Test
 	void rateLimiterAllowsTheLimitPerMinutePerIpThenAsksToWait() {
 		AppProperties props = new AppProperties(false, List.of(), "x", "/files", null, null, null, null,
-				new AppProperties.RateLimit(3, 5, 5, 5));
+				new AppProperties.RateLimit(3, 5, 5, 5), null);
 		RateLimiter limiter = new RateLimiter(props, Clock.fixed(Instant.parse("2026-10-06T10:00:00Z"), ZoneId.of("UTC")));
 
 		for (int i = 0; i < 3; i++) {
@@ -81,6 +81,7 @@ class BookingUnitTest {
 		assertThat(RateLimitInterceptorAccess.limitFor("POST", "/api/public/appointments")).isEqualTo(Limit.BOOKING);
 		assertThat(RateLimitInterceptorAccess.limitFor("POST", "/api/public/appointments/cancel")).isEqualTo(Limit.BOOKING);
 		assertThat(RateLimitInterceptorAccess.limitFor("POST", "/api/public/appointments/reschedule")).isEqualTo(Limit.BOOKING);
+		assertThat(RateLimitInterceptorAccess.limitFor("POST", "/api/public/appointments/email")).isEqualTo(Limit.BOOKING);
 		assertThat(RateLimitInterceptorAccess.limitFor("POST", "/api/public/appointments/lookup")).isEqualTo(Limit.LOOKUP);
 		assertThat(RateLimitInterceptorAccess.limitFor("GET", "/api/public/doctors/7/slots")).isEqualTo(Limit.SLOTS);
 		assertThat(RateLimitInterceptorAccess.limitFor("GET", "/api/public/doctors/7/slot-days")).isEqualTo(Limit.SLOTS);

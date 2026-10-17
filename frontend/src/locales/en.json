@@ -18,7 +18,11 @@
     "myBooking": "My booking"
   },
   "banner": {
-    "sampleData": "SAMPLE DATA — all doctors and patients shown are fictional, for testing only."
+    "sampleData": "SAMPLE DATA — all doctors and patients shown are fictional, for testing only.",
+    "testSite": "⚠️ TEST WEBSITE — \"Vihan Multi Speciality Hospital\" is NOT a real hospital. This is a software learning project: doctors, bookings, addresses and phone numbers are not real. Please don’t visit or call for treatment.",
+    "testSiteLabel": "Test website notice",
+    "pause": "Pause",
+    "play": "Play"
   },
   "seo": {
     "homeTitle": "Vihan Multi Speciality Hospital — Miryalaguda, Huzurnagar, Kodad",
@@ -837,7 +841,34 @@
     "home": "Back to home",
     "missing": "Your booking {{ref}} is saved. To see its details, use \"Check my booking\" with your mobile number.",
     "walkIn": "walk-in",
-    "uhid": "Linked to your patient record {{uhid}}"
+    "uhid": "Linked to your patient record {{uhid}}",
+    "whatsapp": "Share on WhatsApp",
+    "whatsappHint": "Opens WhatsApp so you can send these details to yourself or your family.",
+    "share": {
+      "testNotice": "⚠️ TEST PROJECT — not a real hospital. This is not a real medical appointment.",
+      "title": "✅ Appointment confirmed – {{hospital}}",
+      "ref": "Booking ref: {{ref}}",
+      "token": "Token: {{token}}",
+      "patient": "Patient: {{name}}",
+      "doctor": "Doctor: {{doctor}} ({{speciality}})",
+      "when": "When: {{when}}. Please arrive 15 minutes early.",
+      "where": "Where: {{where}}",
+      "fee": "Fee: {{fee}}, pay at the counter",
+      "link": "Check or change: {{url}}"
+    },
+    "email": {
+      "title": "Get this confirmation by email",
+      "optional": "(optional)",
+      "label": "Email address",
+      "placeholder": "name@example.com",
+      "hint": "We use this email only for messages about this booking.",
+      "send": "Send email",
+      "sending": "Sending…",
+      "invalid": "Enter a valid email address",
+      "sent": "Sent to {{to}}. If you can’t see it, check your spam folder.",
+      "sendAgain": "Send to another address",
+      "failed": "We couldn't send the email right now. Please try again later, or print this page."
+    }
   },
   "status": {
     "title": "Check my booking",

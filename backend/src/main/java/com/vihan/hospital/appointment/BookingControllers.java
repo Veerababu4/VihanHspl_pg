@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.vihan.hospital.appointment.AppointmentDtos.AppointmentView;
 import com.vihan.hospital.appointment.AppointmentDtos.BookingRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.CancelRequest;
+import com.vihan.hospital.appointment.AppointmentDtos.EmailConfirmationRequest;
+import com.vihan.hospital.appointment.AppointmentDtos.EmailConfirmationResult;
 import com.vihan.hospital.appointment.AppointmentDtos.LookupRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.BookingSummary;
 import com.vihan.hospital.appointment.AppointmentDtos.FindRequest;
@@ -29,6 +31,10 @@ import com.vihan.hospital.appointment.AppointmentDtos.RescheduleRequest;
 import com.vihan.hospital.appointment.AppointmentDtos.SlotDayDto;
 import com.vihan.hospital.appointment.AppointmentDtos.StaffBookingRequest;
 import com.vihan.hospital.captcha.CaptchaVerifier;
+import com.vihan.hospital.common.error.ApiException;
+import com.vihan.hospital.common.util.Masking;
+import com.vihan.hospital.config.AppProperties;
+import com.vihan.hospital.notification.email.EmailSender;
 
 /**
  * Booking endpoints (DESIGN.md §11.1, §11.4). Per-IP rate limits are applied before these run
@@ -47,11 +53,16 @@ public final class BookingControllers {
 		private final PublicSlotService slots;
 		private final BookingService booking;
 		private final CaptchaVerifier captcha;
+		private final EmailSender email;
+		private final AppProperties.Email emailSettings;
 
-		public PublicBookingController(PublicSlotService slots, BookingService booking, CaptchaVerifier captcha) {
+		public PublicBookingController(PublicSlotService slots, BookingService booking, CaptchaVerifier captcha,
+				EmailSender email, AppProperties props) {
 			this.slots = slots;
 			this.booking = booking;
 			this.captcha = captcha;
+			this.email = email;
+			this.emailSettings = props.email();
 		}
 
 		@GetMapping("/doctors/{doctorId}/slot-days")
@@ -82,6 +93,23 @@ public final class BookingControllers {
 	public List<BookingSummary> find(@Valid @RequestBody FindRequest req, HttpServletRequest http) {
 		captcha.verify(req.captchaToken(), http.getRemoteAddr());
 		return booking.findByOne(req.bookingRef(), req.mobile());
+	}
+
+	/**
+	 * Confirmation by email from the confirmation page (DESIGN.md §19.8). No captcha (it was solved to
+	 * book); the reference + mobile, the per-booking cap and the per-IP booking limit guard it. The
+	 * email is sent after the request is recorded and committed: a provider failure answers 502 and
+	 * never touches the booking.
+	 */
+	@PostMapping("/appointments/email")
+	public EmailConfirmationResult emailConfirmation(@Valid @RequestBody EmailConfirmationRequest req) {
+		if (!emailSettings.formEnabled()) {
+			throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "EMAIL_UNAVAILABLE", "Confirmation emails are not available");
+		}
+		AppointmentView view = booking.recordConfirmationEmail(req.bookingRef(), req.mobile(), req.email());
+		String to = req.email().strip();
+		email.send(ConfirmationEmail.build(to, view, emailSettings));
+		return new EmailConfirmationResult(Masking.email(to));
 	}
 
 	@PostMapping("/appointments/cancel")

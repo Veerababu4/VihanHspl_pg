@@ -22,7 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({ TestcontainersConfiguration.class, TestCaptchaConfiguration.class })
+@Import({ TestcontainersConfiguration.class, TestCaptchaConfiguration.class, TestEmailConfiguration.class })
 @ActiveProfiles("local")
 @TestPropertySource(properties = {
 		"app.auth.jwt-secret=test-secret-for-integration-tests-only-0123456789",

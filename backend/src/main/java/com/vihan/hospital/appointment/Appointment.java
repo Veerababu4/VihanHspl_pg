@@ -109,6 +109,14 @@ public class Appointment extends AuditableEntity {
 	@Column(name = "completed_at")
 	private LocalDateTime completedAt;
 
+	/** Given on the confirmation page, for the confirmation email (and later booking emails). */
+	@Column(name = "patient_email", length = 120)
+	private String patientEmail;
+
+	/** Confirmation emails asked for so far; capped per booking. */
+	@Column(name = "email_sent_count", nullable = false)
+	private int emailSentCount;
+
 	@Version
 	@Column(nullable = false)
 	private long version;
@@ -198,6 +206,13 @@ public class Appointment extends AuditableEntity {
 		requireStatus(Status.BOOKED);
 		this.status = Status.NO_SHOW;
 		this.needsAction = false;
+	}
+
+	/** The patient asked for the confirmation by email (counted, so the caller can cap it). */
+	public void recordConfirmationEmail(String email) {
+		requireStatus(Status.BOOKED);
+		this.patientEmail = email;
+		this.emailSentCount++;
 	}
 
 	public void complete(LocalDateTime now) {
@@ -307,6 +322,14 @@ public class Appointment extends AuditableEntity {
 
 	public LocalDateTime getCheckedInAt() {
 		return checkedInAt;
+	}
+
+	public String getPatientEmail() {
+		return patientEmail;
+	}
+
+	public int getEmailSentCount() {
+		return emailSentCount;
 	}
 
 }

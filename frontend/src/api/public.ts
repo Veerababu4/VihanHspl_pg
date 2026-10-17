@@ -8,6 +8,10 @@ export interface AppInfo {
   name: string
   /** true when the backend serves fictional sample data (local profile) */
   sampleData: boolean
+  /** the confirmation page offers "email me this confirmation" */
+  confirmationEmail: boolean
+  /** shared texts (WhatsApp) say this is a test project, not a real hospital */
+  testNotice: boolean
 }
 
 export interface Branch {

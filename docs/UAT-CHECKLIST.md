@@ -62,6 +62,9 @@
 | C7 | Cancel; the time becomes free again; cancelling less than 1 hour before is refused | | |
 | C8 | A doctor's leave or holiday day can't be booked | | |
 | C9 | Two people booking the same time at the same moment: only one succeeds | | |
+| C12 | Every public page starts with the scrolling red "TEST WEBSITE – not a real hospital" line; Pause stops it | | |
+| C10 | Confirmation page → "Share on WhatsApp" opens WhatsApp with the booking details (no mobile number); send it to yourself | | |
+| C11 | Confirmation page → email yourself the confirmation: it arrives (check spam), says TEST / not a real hospital at the top, details match; a 4th send for the same booking is refused | | |
 
 ## D. Reception (each receptionist at their own hospital)
 

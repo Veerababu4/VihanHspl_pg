@@ -5,6 +5,22 @@ UptimeRobot on). Start here, then read `docs/DESIGN.md` (v0.14, §16.3), `deploy
 
 ## 0. Resume here (next session)
 
+**2026-10-17: PR (branch `feature/confirmation-email-whatsapp`) — confirmation email, Share on WhatsApp,
+"not a real hospital" line.** Asked for by the user; details in DESIGN §19.8 and `deploy/README.md` §5.
+- Confirmation page: **Share on WhatsApp** (`wa.me/?text=…`, booking details, never the mobile) and an optional
+  **email form** → `POST /api/public/appointments/email` `{bookingRef, mobile, email}`. The full mobile comes from the
+  booking form in router state. Upcoming `BOOKED` only, max 3 per booking (V6: `appointment.patient_email`,
+  `email_sent_count`), per-IP booking limit, no second captcha. Address masked in logs / audit.
+- Sender: `EMAIL_PROVIDER=log` (default, only logs) or `brevo` (HTTP API; Render free blocks SMTP). The form shows when
+  `EMAIL_FORM_ENABLED=true` (local profile: on). **Live stays on log with no form until the user sets up Brevo**
+  (deploy/README §5: account, verified sender, API key into `cloud-secrets.env`, 4 Render env vars).
+- The user asked that emails say it's a test: `EMAIL_TEST_BANNER` (default true) → `[TEST]` subject + "NOT a real
+  hospital" banner on top of the email, first line of the WhatsApp text, and a **scrolling red line on every public
+  page** (`TestSiteMarquee`, Pause button, still with reduced motion).
+- Tests: backend **195/195**, frontend unit **77/77**, lint + typecheck clean, local E2E **12/12** (the E2E sends the
+  email only locally, never against the live site). Docker Desktop quit once during the backend run (low memory);
+  restarted, then clean.
+
 **2026-10-16, evening: nothing open.** `main` = `3c52f59` (PR #12, the UptimeRobot handover below, merged).
 Since PR #12:
 - The user deleted the plain-site monitor: **only one monitor now**, the `app-info` keep-awake one (id `804299976`).

@@ -49,6 +49,6 @@ export const pharmacyPhoto: GalleryImage = { ...wardPhoto, id: 2, title: 'Pharma
 
 /** Responses every page needs (layout: app info + branches for footer / emergency button). */
 export const layoutApi = {
-  '/public/app-info': { name: 'Vihan', sampleData: false },
+  '/public/app-info': { name: 'Vihan', sampleData: false, confirmationEmail: true, testNotice: true },
   '/public/branches': [huzurnagar, kodad],
 }
