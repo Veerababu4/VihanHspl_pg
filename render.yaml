@@ -55,3 +55,19 @@ services:
         value: classpath:db/migration,classpath:db/dev-data
       - key: DEV_SAMPLE_PASSWORD      # password of itadmin, reception.*, doctor001-020
         sync: false
+      # ---- Confirmation email (DESIGN.md §19.8; deploy/README.md §5) ----
+      # Unset = the safe defaults: provider "log" and no email form. Set these in the dashboard
+      # (sync: false, so a Blueprint sync never overwrites them): EMAIL_PROVIDER=brevo,
+      # EMAIL_FORM_ENABLED=true, BREVO_API_KEY, MAIL_FROM.
+      - key: EMAIL_PROVIDER
+        sync: false
+      - key: EMAIL_FORM_ENABLED
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SITE_URL                 # for the "check or change my booking" link in emails
+        value: https://vihanhspl-pg.pages.dev
+      - key: EMAIL_TEST_BANNER        # "test project, not a real hospital" on emails and WhatsApp; false only for a real hospital
+        value: "true"

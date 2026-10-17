@@ -69,6 +69,75 @@ describe('Booking wizard', () => {
     })
   })
 
+  it('offers WhatsApp sharing without the mobile, with the test-project notice', async () => {
+    mockApi({ ...api, 'POST /public/appointments': json(confirmed, 201) })
+    renderRoutes(routes, '/book?doctor=6&branch=KDD')
+    await chooseTimeAndFillDetails()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }))
+
+    const link = await screen.findByRole('link', { name: 'Share on WhatsApp' })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    const href = link.getAttribute('href') ?? ''
+    expect(href).toMatch(/^https:\/\/wa\.me\/\?text=/)
+    const text = decodeURIComponent(href.slice('https://wa.me/?text='.length))
+    expect(text.split('\n')[0]).toBe('⚠️ TEST PROJECT — not a real hospital. This is not a real medical appointment.')
+    expect(text).toContain('Booking ref: VMH-261006-7K3Q · Token: 2')
+    expect(text).toContain('Doctor: Dr. Venkata Ramana Pulla (Cardiology)')
+    expect(text).toContain('Fee: ₹800, pay at the counter')
+    expect(text).toContain(`${window.location.origin}/appointment-status?ref=VMH-261006-7K3Q`)
+    expect(text).not.toMatch(/9876543210|98XXXXXX10/)
+  })
+
+  it('emails the confirmation with reference, full mobile and the address', async () => {
+    const spy = mockApi({
+      ...api,
+      'POST /public/appointments': json(confirmed, 201),
+      'POST /public/appointments/email': { sentTo: 'r***@example.com' },
+    })
+    renderRoutes(routes, '/book?doctor=6&branch=KDD')
+    await chooseTimeAndFillDetails()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }))
+
+    const field = await screen.findByLabelText('Email address')
+    fireEvent.change(field, { target: { value: 'ravi@' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send email' }))
+    expect(await screen.findByText('Enter a valid email address')).toBeInTheDocument()
+    expect(requestBody(spy, 'POST /public/appointments/email')).toBeUndefined()
+
+    fireEvent.change(field, { target: { value: ' ravi@example.com ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send email' }))
+    expect(await screen.findByText(/Sent to r\*\*\*@example\.com/)).toHaveAttribute('role', 'status')
+    expect(requestBody(spy, 'POST /public/appointments/email')).toEqual({
+      bookingRef: 'VMH-261006-7K3Q', mobile: '9876543210', email: 'ravi@example.com',
+    })
+  })
+
+  it('shows why the email could not be sent', async () => {
+    mockApi({
+      ...api,
+      'POST /public/appointments': json(confirmed, 201),
+      'POST /public/appointments/email': () =>
+        json({ status: 429, code: 'EMAIL_LIMIT', message: 'Already emailed 3 times', fieldErrors: [] }, 429),
+    })
+    renderRoutes(routes, '/book?doctor=6&branch=KDD')
+    await chooseTimeAndFillDetails()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }))
+
+    fireEvent.change(await screen.findByLabelText('Email address'), { target: { value: 'ravi@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send email' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Already emailed 3 times')
+  })
+
+  it('hides email and WhatsApp when the page has no booking details', async () => {
+    mockApi(api)
+    renderRoutes(routes, '/book/confirmation/VMH-261006-7K3Q')
+
+    expect(await screen.findByText(/Your booking VMH-261006-7K3Q is saved/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Share on WhatsApp' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Email address')).not.toBeInTheDocument()
+  })
+
   it('checks the details before sending', async () => {
     const spy = mockApi(api)
     renderRoutes(routes, '/book?doctor=6&branch=KDD')

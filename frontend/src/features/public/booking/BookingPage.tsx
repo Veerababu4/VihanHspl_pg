@@ -83,7 +83,8 @@ export function BookingPage() {
         consent: v.consent,
         captchaToken,
       })
-      navigate(`/book/confirmation/${appointment.bookingRef}`, { state: { appointment } })
+      // The full mobile goes along (in memory / history only, never the URL) for "email me this confirmation".
+      navigate(`/book/confirmation/${appointment.bookingRef}`, { state: { appointment, mobile: normalizeMobile(v.mobile) ?? v.mobile } })
     } catch (e) {
       setCaptchaReset((n) => n + 1)   // captcha tokens are single-use
       if (e instanceof ApiError && SLOT_GONE.includes(e.code)) {

@@ -64,6 +64,9 @@ class BookingIntegrationTest {
 	@Autowired
 	BookingService bookingService;
 
+	@Autowired
+	TestEmailConfiguration.RecordingEmailSender emails;
+
 	String admin;
 	long mlg;
 	long doctorId;
@@ -340,6 +343,54 @@ class BookingIntegrationTest {
 		patientAction("find", "{\"captchaToken\":\"pass\"}").andExpect(status().isBadRequest());
 		patientAction("find", "{\"bookingRef\":\"VMH-000000-ZZZZ\",\"mobile\":\"%s\",\"captchaToken\":\"pass\"}".formatted(mobile))
 			.andExpect(status().isBadRequest());
+	}
+
+	// ---- confirmation by email ----
+
+	private ResultActions emailConfirmation(String ref, String mobile, String email) throws Exception {
+		return patientAction("email", "{\"bookingRef\":\"%s\",\"mobile\":\"%s\",\"email\":\"%s\"}".formatted(ref, mobile, email));
+	}
+
+	@Test
+	void confirmationIsEmailedWithReferenceAndMobileAtMostThreeTimes() throws Exception {
+		String ref = bookRef(slot("10:00"), mobile);
+		String address = "ravi." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+
+		emailConfirmation(ref, mobile, "  " + address + " ")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.sentTo").value("r***@example.com"));
+		assertThat(emails.sentTo(address)).singleElement().satisfies(m -> {
+			assertThat(m.subject()).startsWith("[TEST] Booking confirmed " + ref);
+			assertThat(m.text()).contains("NOT a real hospital").contains("Patient: Ravi Kumar").doesNotContain(mobile);
+		});
+		assertThat(jdbc.queryForObject("SELECT patient_email FROM appointment WHERE booking_ref = ?", String.class, ref))
+			.isEqualTo(address);
+		assertThat(jdbc.queryForObject("SELECT details FROM audit_log WHERE action = 'APPOINTMENT_EMAIL_REQUESTED' "
+				+ "AND entity_id = (SELECT CAST(appointment_id AS VARCHAR) FROM appointment WHERE booking_ref = ?)", String.class, ref))
+			.isEqualTo("to r***@example.com");   // never the full address
+
+		emailConfirmation(ref, mobile, address).andExpect(status().isOk());
+		emailConfirmation(ref, mobile, address).andExpect(status().isOk());
+		emailConfirmation(ref, mobile, address)
+			.andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("EMAIL_LIMIT"));
+		assertThat(emails.sentTo(address)).hasSize(3);
+	}
+
+	@Test
+	void confirmationEmailNeedsTheMatchingMobileAnUpcomingBookingAndAValidAddress() throws Exception {
+		String ref = bookRef(slot("10:40"), mobile);
+		String address = "x." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+
+		emailConfirmation(ref, newMobile(), address)
+			.andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("BOOKING_NOT_FOUND"));
+		emailConfirmation(ref, mobile, "not-an-email").andExpect(status().isBadRequest());
+		emailConfirmation(ref, mobile, "").andExpect(status().isBadRequest());
+
+		patientAction("cancel", "{\"bookingRef\":\"%s\",\"mobile\":\"%s\",\"captchaToken\":\"pass\"}".formatted(ref, mobile))
+			.andExpect(status().isOk());
+		emailConfirmation(ref, mobile, address)
+			.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NOT_EMAILABLE"));
+		assertThat(emails.sentTo(address)).isEmpty();
 	}
 
 	@Test

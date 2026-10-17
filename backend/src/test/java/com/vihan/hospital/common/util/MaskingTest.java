@@ -19,6 +19,14 @@ class MaskingTest {
 	}
 
 	@Test
+	void masksEmailToFirstLetterAndDomain() {
+		assertThat(Masking.email("ravi.kumar@gmail.com")).isEqualTo("r***@gmail.com");
+		assertThat(Masking.email("not-an-email")).isEqualTo("***");
+		assertThat(Masking.email("@gmail.com")).isEqualTo("***");
+		assertThat(Masking.email(null)).isNull();
+	}
+
+	@Test
 	void masksAadhaarFromLastFourDigits() {
 		assertThat(Masking.aadhaarFromLast4("1234")).isEqualTo("XXXX-XXXX-1234");
 		assertThat(Masking.aadhaarFromLast4(null)).isNull();

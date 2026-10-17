@@ -1,4 +1,9 @@
+import { AxeBuilder } from '@axe-core/playwright'
+
 import { expect, expectNoSidewaysScroll, randomMobile, test, waitForCaptcha } from './fixtures.ts'
+
+/** Against the live site no real email is sent from tests (the form may be off there anyway). */
+const LIVE = !!process.env.E2E_BASE_URL && !/localhost|127\.0\.0\.1/.test(process.env.E2E_BASE_URL)
 
 const PUBLIC_PAGES = ['/', '/doctors', '/branches/MLG', '/gallery', '/about', '/contact', '/appointment-status', '/privacy']
 
@@ -33,6 +38,22 @@ test('patient books online, finds the booking, reschedules and cancels it', asyn
   await page.getByRole('button', { name: 'Confirm booking' }).click()
   await expect(page.getByRole('heading', { name: /Booking confirmed/ })).toBeVisible({ timeout: 30_000 })
   const ref = (await page.getByTestId('booking-ref').textContent())!.trim()
+
+  // Share on WhatsApp: WhatsApp's own link with the details (never the mobile) filled in.
+  const share = decodeURIComponent((await page.getByRole('link', { name: 'Share on WhatsApp' }).getAttribute('href'))!)
+  expect(share).toMatch(/^https:\/\/wa\.me\/\?text=/)
+  expect(share).toContain(`Booking ref: ${ref}`)
+  expect(share).not.toContain(mobile)
+
+  // Confirmation by email (locally the backend only logs it).
+  const emailField = page.getByLabel('Email address')
+  if (!LIVE && (await emailField.isVisible())) {
+    await emailField.fill('e2e.patient@example.com')
+    await page.getByRole('button', { name: 'Send email' }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Sent to' })).toContainText('Sent to e***@example.com')
+  }
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('iframe').analyze()
+  expect.soft(axe.violations.map((v) => `${v.id}: ${v.help}`), 'confirmation page').toEqual([])
 
   // The link pre-fills the reference: with the mobile too, the booking opens straight away.
   await page.getByRole('link', { name: 'Check or change my booking' }).click()

@@ -100,3 +100,12 @@ app:
     lookup-per-minute: 30             # per IP: check booking
     slots-per-minute: 60              # per IP: viewing free slots
     login-per-minute: 20              # per IP: staff login attempts (accounts also lock after 5 failures)
+  email:                              # confirmation email (DESIGN.md §19.8)
+    provider: ${EMAIL_PROVIDER:log}   # log (writes to the log only) | brevo (Brevo HTTP API; SMTP is blocked on Render free)
+    form-enabled: ${EMAIL_FORM_ENABLED:false}   # confirmation page offers the email form
+    brevo-api-key: ${BREVO_API_KEY:}
+    from-address: ${MAIL_FROM:}       # sender verified in Brevo
+    from-name: Vihan Multi Speciality Hospital
+    site-url: ${SITE_URL:http://localhost:5173}
+    max-per-booking: 3                # stops one booking being used to flood an inbox
+    test-banner: ${EMAIL_TEST_BANNER:true}   # "test project, not a real hospital" on emails and the WhatsApp text

@@ -16,11 +16,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param booking            public booking rules (DESIGN.md §5.2, §17)
  * @param captcha            Cloudflare Turnstile verification (DESIGN.md §19.2)
  * @param rateLimit          per-IP request limits on public booking endpoints (DESIGN.md §12.4)
+ * @param email              confirmation email (DESIGN.md §19.8)
  */
 @ConfigurationProperties("app")
 public record AppProperties(boolean sampleData, List<String> corsAllowedOrigins, String uploadDir,
 		String publicFileBaseUrl, Auth auth, Scheduling scheduling,
-		Booking booking, Captcha captcha, RateLimit rateLimit) {
+		Booking booking, Captcha captcha, RateLimit rateLimit, Email email) {
 
 	/**
 	 * @param jwtSecret              HMAC key for access tokens; at least 32 characters
@@ -47,6 +48,20 @@ public record AppProperties(boolean sampleData, List<String> corsAllowedOrigins,
 	}
 
 	public record RateLimit(int bookingPerMinute, int lookupPerMinute, int slotsPerMinute, int loginPerMinute) {
+	}
+
+	/**
+	 * @param provider      {@code log} (only writes to the log) or {@code brevo} (sends through Brevo's HTTP API)
+	 * @param formEnabled   the confirmation page offers the email form
+	 * @param brevoApiKey   Brevo API key; required for {@code brevo}
+	 * @param fromAddress   sender, verified in Brevo; required for {@code brevo}
+	 * @param fromName      sender name shown in the inbox
+	 * @param siteUrl       the website, for the "check or change my booking" link
+	 * @param maxPerBooking confirmation emails one booking may send
+	 * @param testBanner    marks every email (and the WhatsApp text) as coming from a test project, not a real hospital
+	 */
+	public record Email(String provider, boolean formEnabled, String brevoApiKey, String fromAddress, String fromName,
+			String siteUrl, int maxPerBooking, boolean testBanner) {
 	}
 
 }

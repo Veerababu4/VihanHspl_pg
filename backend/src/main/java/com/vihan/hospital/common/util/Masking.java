@@ -38,6 +38,18 @@ public final class Masking {
 		return last < 0 ? "****" : ref.substring(0, last + 1) + "****";
 	}
 
+	/** {@code ravi.kumar@gmail.com -> r***@gmail.com}. Anything without a local part and domain is fully masked. */
+	public static String email(String email) {
+		if (email == null) {
+			return null;
+		}
+		int at = email.lastIndexOf('@');
+		if (at < 1 || at == email.length() - 1) {
+			return "***";
+		}
+		return email.substring(0, 1) + "***" + email.substring(at);
+	}
+
 	/** {@code 1234 -> XXXX-XXXX-1234}; null when the patient gave no Aadhaar. */
 	public static String aadhaarFromLast4(String last4) {
 		return last4 == null ? null : "XXXX-XXXX-" + last4;

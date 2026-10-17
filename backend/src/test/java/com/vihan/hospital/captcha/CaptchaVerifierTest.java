@@ -25,7 +25,7 @@ class CaptchaVerifierTest {
 
 	private static AppProperties props(boolean enabled, String hostname) {
 		return new AppProperties(false, List.of(), "x", "/files", null, null, null,
-				new AppProperties.Captcha(enabled, "secret-123", hostname), null);
+				new AppProperties.Captcha(enabled, "secret-123", hostname), null, null);
 	}
 
 	private final RestClient.Builder builder = RestClient.builder();

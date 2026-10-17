@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import type { Branch } from '../../api/public'
@@ -29,6 +29,26 @@ describe('HomePage', () => {
     renderRoutes(routes)
 
     expect(await screen.findByRole('status')).toHaveTextContent('SAMPLE DATA')
+  })
+
+  it('shows the scrolling "not a real hospital" line, which can be paused', async () => {
+    mockApi({ '/public/branches': [], '/public/app-info': { name: 'Vihan', sampleData: false, testNotice: true } })
+    renderRoutes(routes)
+
+    const note = await screen.findByRole('note', { name: 'Test website notice' })
+    expect(note).toHaveTextContent('is NOT a real hospital')
+    const pause = within(note).getByRole('button', { name: 'Pause' })
+    expect(pause).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(pause)
+    expect(within(note).getByRole('button', { name: 'Play' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('hides the test-site line when the backend turns it off', async () => {
+    mockApi({ '/public/branches': [kodad], '/public/app-info': { name: 'Vihan', sampleData: false, testNotice: false } })
+    renderRoutes(routes)
+
+    expect(await screen.findByRole('heading', { name: 'Kodad' })).toBeInTheDocument()
+    expect(screen.queryByRole('note', { name: 'Test website notice' })).not.toBeInTheDocument()
   })
 
   it('shows an error when branches cannot be loaded', async () => {

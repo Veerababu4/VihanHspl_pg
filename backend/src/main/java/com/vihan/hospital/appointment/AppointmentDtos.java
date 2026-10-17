@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -86,6 +87,20 @@ public final class AppointmentDtos {
 
 	public record RescheduleRequest(@NotBlank @Size(max = 30) String bookingRef, @NotBlank @Size(max = 20) String mobile,
 			@NotNull Long newSlotId, String captchaToken) {
+	}
+
+	/** Confirmation by email, from the confirmation page: the same proof as a lookup (reference + mobile). */
+	public record EmailConfirmationRequest(@NotBlank @Size(max = 30) String bookingRef, @NotBlank @Size(max = 20) String mobile,
+			@NotBlank @Email(message = "enter a valid email address") @Size(max = 120) String email) {
+
+		/** Spaces copied around an address aren't a reason to refuse it. */
+		public EmailConfirmationRequest {
+			email = email == null ? null : email.strip();
+		}
+	}
+
+	/** @param sentTo the address, masked ({@code r***@gmail.com}) */
+	public record EmailConfirmationResult(String sentTo) {
 	}
 
 	// ---- the booking as shown to the patient ----

@@ -39,7 +39,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 				return Limit.LOOKUP;
 			}
 			if (path.equals("/api/public/appointments") || path.equals("/api/public/appointments/cancel")
-					|| path.equals("/api/public/appointments/reschedule")) {
+					|| path.equals("/api/public/appointments/reschedule") || path.equals("/api/public/appointments/email")) {
 				return Limit.BOOKING;
 			}
 			if (path.equals("/api/auth/login")) {

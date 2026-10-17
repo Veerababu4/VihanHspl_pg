@@ -77,7 +77,9 @@ class FoundationIntegrationTest {
 	void appInfoReportsSampleData() throws Exception {
 		mvc.perform(get("/api/public/app-info"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.sampleData").value(true));
+			.andExpect(jsonPath("$.sampleData").value(true))
+			.andExpect(jsonPath("$.confirmationEmail").value(true))   // local profile: the form is on, emails only logged
+			.andExpect(jsonPath("$.testNotice").value(true));
 	}
 
 	@Test

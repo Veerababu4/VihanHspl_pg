@@ -119,6 +119,13 @@ export const useRescheduleAppointment = () =>
       apiSend<AppointmentView>('POST', '/public/appointments/reschedule', input),
   })
 
+/** Confirmation by email from the confirmation page; the same proof as a lookup (reference + mobile). */
+export const useEmailConfirmation = () =>
+  useMutation({
+    mutationFn: (input: { bookingRef: string; mobile: string; email: string }) =>
+      apiSend<{ sentTo: string }>('POST', '/public/appointments/email', input),
+  })
+
 /** Counter / phone booking by reception (no captcha). */
 export const useStaffBook = () =>
   useMutation({
